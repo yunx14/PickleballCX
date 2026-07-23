@@ -1,31 +1,61 @@
-import { StyleSheet, Text, View } from 'react-native';
+import { router } from 'expo-router';
+import { Pressable, ScrollView, StyleSheet, Text } from 'react-native';
 
 import { brand } from '@/constants/brand';
+import { useUpcomingEvents } from '@/hooks/useEvents';
+import { useGroups } from '@/hooks/useGroups';
+import { sessionsTabRoute } from '@/lib/routes';
 import { useAuth } from '@/providers/AuthProvider';
 
 export default function HomeScreen() {
   const { profile } = useAuth();
+  const { data: events } = useUpcomingEvents();
+  const { data: groups } = useGroups();
+
+  const upcomingCount = events?.length ?? 0;
+  const groupCount = groups?.length ?? 0;
 
   return (
-    <View style={styles.container}>
+    <ScrollView contentContainerStyle={styles.scrollContent}>
       <Text style={styles.greeting}>Hey, {profile?.display_name ?? 'player'} 👋</Text>
-      <Text style={styles.title}>Upcoming sessions</Text>
-      <View style={styles.emptyCard}>
-        <Text style={styles.emptyTitle}>No sessions yet</Text>
-        <Text style={styles.emptyBody}>
-          Join a group and schedule your first pickleball session. This feed will show sessions
-          across all your groups.
+      <Text style={styles.title}>Welcome back</Text>
+      <Text style={styles.subtitle}>
+        See what's coming up, manage your groups, and schedule your next game.
+      </Text>
+
+      <Pressable
+        onPress={() => router.push(sessionsTabRoute)}
+        style={({ pressed }) => [styles.card, pressed && styles.cardPressed]}>
+        <Text style={styles.cardTitle}>Sessions</Text>
+        <Text style={styles.cardBody}>
+          {upcomingCount === 0
+            ? 'No upcoming sessions — tap to view your feed'
+            : `${upcomingCount} upcoming session${upcomingCount === 1 ? '' : 's'}`}
         </Text>
-      </View>
-    </View>
+      </Pressable>
+
+      <Pressable
+        onPress={() => router.push('/(tabs)/groups')}
+        style={({ pressed }) => [styles.card, pressed && styles.cardPressed]}>
+        <Text style={styles.cardTitle}>Groups</Text>
+        <Text style={styles.cardBody}>
+          {groupCount === 0
+            ? 'Create or join a group to get started'
+            : `${groupCount} group${groupCount === 1 ? '' : 's'}`}
+        </Text>
+      </Pressable>
+    </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
+  scrollContent: {
+    flexGrow: 1,
     backgroundColor: brand.sand,
-    padding: 20,
+    paddingHorizontal: 20,
+    paddingTop: 20,
+    paddingBottom: 40,
+    gap: 12,
   },
   greeting: {
     fontSize: 16,
@@ -36,22 +66,31 @@ const styles = StyleSheet.create({
     fontSize: 28,
     fontWeight: '700',
     color: brand.green900,
-    marginBottom: 20,
+    marginBottom: 8,
   },
-  emptyCard: {
+  subtitle: {
+    fontSize: 15,
+    lineHeight: 22,
+    color: brand.muted,
+    marginBottom: 12,
+  },
+  card: {
     backgroundColor: brand.white,
     borderRadius: 16,
     padding: 20,
     borderWidth: 1,
     borderColor: '#E9ECEF',
   },
-  emptyTitle: {
+  cardPressed: {
+    opacity: 0.85,
+  },
+  cardTitle: {
     fontSize: 18,
     fontWeight: '700',
     color: brand.text,
-    marginBottom: 8,
+    marginBottom: 4,
   },
-  emptyBody: {
+  cardBody: {
     fontSize: 15,
     lineHeight: 22,
     color: brand.muted,

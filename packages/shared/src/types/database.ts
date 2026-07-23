@@ -19,6 +19,7 @@ export interface Database {
           skill_level: SkillLevel | null;
           profile_visibility: ProfileVisibility;
           phone: string | null;
+          is_app_admin: boolean;
           created_at: string;
           updated_at: string;
         };
@@ -29,6 +30,7 @@ export interface Database {
           skill_level?: SkillLevel | null;
           profile_visibility?: ProfileVisibility;
           phone?: string | null;
+          is_app_admin?: boolean;
           created_at?: string;
           updated_at?: string;
         };
@@ -39,6 +41,7 @@ export interface Database {
           skill_level?: SkillLevel | null;
           profile_visibility?: ProfileVisibility;
           phone?: string | null;
+          is_app_admin?: boolean;
           created_at?: string;
           updated_at?: string;
         };
@@ -69,7 +72,15 @@ export interface Database {
           created_at?: string;
           updated_at?: string;
         };
-        Relationships: [];
+        Relationships: [
+          {
+            foreignKeyName: 'groups_created_by_fkey',
+            columns: ['created_by'],
+            isOneToOne: false,
+            referencedRelation: 'profiles',
+            referencedColumns: ['id'],
+          },
+        ];
       };
       group_members: {
         Row: {
@@ -90,12 +101,26 @@ export interface Database {
           role?: GroupMemberRole;
           joined_at?: string;
         };
-        Relationships: [];
+        Relationships: [
+          {
+            foreignKeyName: 'group_members_group_id_fkey',
+            columns: ['group_id'],
+            isOneToOne: false,
+            referencedRelation: 'groups',
+            referencedColumns: ['id'],
+          },
+          {
+            foreignKeyName: 'group_members_user_id_fkey',
+            columns: ['user_id'],
+            isOneToOne: false,
+            referencedRelation: 'profiles',
+            referencedColumns: ['id'],
+          },
+        ];
       };
       courts: {
         Row: {
           id: string;
-          group_id: string | null;
           name: string;
           address: string;
           lat: number;
@@ -109,7 +134,6 @@ export interface Database {
         };
         Insert: {
           id?: string;
-          group_id?: string | null;
           name: string;
           address: string;
           lat: number;
@@ -123,7 +147,6 @@ export interface Database {
         };
         Update: {
           id?: string;
-          group_id?: string | null;
           name?: string;
           address?: string;
           lat?: number;
@@ -189,7 +212,29 @@ export interface Database {
           created_at?: string;
           updated_at?: string;
         };
-        Relationships: [];
+        Relationships: [
+          {
+            foreignKeyName: 'events_court_id_fkey',
+            columns: ['court_id'],
+            isOneToOne: false,
+            referencedRelation: 'courts',
+            referencedColumns: ['id'],
+          },
+          {
+            foreignKeyName: 'events_group_id_fkey',
+            columns: ['group_id'],
+            isOneToOne: false,
+            referencedRelation: 'groups',
+            referencedColumns: ['id'],
+          },
+          {
+            foreignKeyName: 'events_created_by_fkey',
+            columns: ['created_by'],
+            isOneToOne: false,
+            referencedRelation: 'profiles',
+            referencedColumns: ['id'],
+          },
+        ];
       };
       event_rsvps: {
         Row: {
@@ -213,7 +258,22 @@ export interface Database {
           created_at?: string;
           updated_at?: string;
         };
-        Relationships: [];
+        Relationships: [
+          {
+            foreignKeyName: 'event_rsvps_event_id_fkey',
+            columns: ['event_id'],
+            isOneToOne: false,
+            referencedRelation: 'events',
+            referencedColumns: ['id'],
+          },
+          {
+            foreignKeyName: 'event_rsvps_user_id_fkey',
+            columns: ['user_id'],
+            isOneToOne: false,
+            referencedRelation: 'profiles',
+            referencedColumns: ['id'],
+          },
+        ];
       };
       event_comments: {
         Row: {

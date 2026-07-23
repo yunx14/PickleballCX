@@ -1,12 +1,16 @@
+import { router } from 'expo-router';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
+
 import { SKILL_LEVEL_LABELS } from '@pickleballcx/shared';
-import { StyleSheet, Text, View } from 'react-native';
 
 import { PrimaryButton } from '@/components/ui/Screen';
 import { brand } from '@/constants/brand';
+import { courtsRoute } from '@/lib/routes';
 import { useAuth } from '@/providers/AuthProvider';
 
 export default function ProfileScreen() {
   const { profile, signOut } = useAuth();
+  const isAppAdmin = profile?.is_app_admin ?? false;
 
   return (
     <View style={styles.container}>
@@ -22,7 +26,18 @@ export default function ProfileScreen() {
             ? `${SKILL_LEVEL_LABELS[profile.skill_level]} (self-reported)`
             : 'Not set'}
         </Text>
+
+        {isAppAdmin ? (
+          <>
+            <Text style={styles.label}>Role</Text>
+            <Text style={styles.value}>App admin</Text>
+          </>
+        ) : null}
       </View>
+
+      {isAppAdmin ? (
+        <PrimaryButton label="Manage courts" onPress={() => router.push(courtsRoute)} />
+      ) : null}
 
       <PrimaryButton label="Sign out" onPress={signOut} />
     </View>

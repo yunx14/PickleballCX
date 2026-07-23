@@ -5,6 +5,7 @@
   "dependencies": {
     "@hookform/resolvers": "^5.1.1",
     "@pickleballcx/shared": "*",
+    "@react-native-community/datetimepicker": "9.1.0",
     "@supabase/supabase-js": "2.110.8",
     "@tanstack/react-query": "^5.81.5",
     "expo": "~57.0.8",

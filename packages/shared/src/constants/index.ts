@@ -25,4 +25,22 @@ export const SKILL_LEVEL_LABELS: Record<SkillLevel, string> = {
   advanced: 'Advanced',
 };
 
+export const COURT_TYPE_LABELS: Record<CourtType, string> = {
+  indoor: 'Indoor',
+  outdoor: 'Outdoor',
+  both: 'Indoor & outdoor',
+};
+
+export const SESSION_TYPE_LABELS: Record<SessionType, string> = {
+  open_play: 'Open play',
+  fixed_group: 'Fixed group size',
+};
+
+export const RSVP_STATUS_LABELS: Record<RsvpStatus, string> = {
+  going: 'Going',
+  maybe: 'Maybe',
+  not_going: 'Not going',
+  waitlist: 'Waitlist',
+};
+
 export const APP_NAME = 'PickleballCX';

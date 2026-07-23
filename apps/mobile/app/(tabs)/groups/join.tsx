@@ -1,0 +1,124 @@
+import { zodResolver } from '@hookform/resolvers/zod';
+import { joinGroupSchema, type JoinGroupInput } from '@pickleballcx/shared';
+import { router } from 'expo-router';
+import { useState } from 'react';
+import { Controller, useForm } from 'react-hook-form';
+import { ScrollView, StyleSheet, Text, View } from 'react-native';
+
+import {
+  ErrorText,
+  FieldLabel,
+  PrimaryButton,
+  ScreenContainer,
+  Subtitle,
+  TextField,
+  Title,
+} from '@/components/ui/Screen';
+import { brand } from '@/constants/brand';
+import { useGroupPreview, useJoinGroup } from '@/hooks/useGroups';
+import { groupRoute } from '@/lib/routes';
+
+export default function JoinGroupScreen() {
+  const [formError, setFormError] = useState<string>();
+  const joinGroup = useJoinGroup();
+  const {
+    control,
+    handleSubmit,
+    watch,
+    formState: { isSubmitting },
+  } = useForm<JoinGroupInput>({
+    resolver: zodResolver(joinGroupSchema),
+    defaultValues: { inviteCode: '' },
+  });
+
+  const inviteCode = watch('inviteCode');
+  const { data: preview, isFetching: isPreviewLoading } = useGroupPreview(inviteCode);
+
+  const onSubmit = handleSubmit(async (values) => {
+    setFormError(undefined);
+
+    try {
+      const groupId = await joinGroup.mutateAsync(values.inviteCode);
+      router.replace(groupRoute(groupId));
+    } catch (error) {
+      setFormError(error instanceof Error ? error.message : 'Could not join group');
+    }
+  });
+
+  return (
+    <ScrollView contentContainerStyle={{ flexGrow: 1 }} keyboardShouldPersistTaps="handled">
+      <ScreenContainer>
+        <Title>Join a group</Title>
+        <Subtitle>Enter the invite code from your group admin to join their pickleball crew.</Subtitle>
+        <ErrorText message={formError} />
+
+        <FieldLabel>Invite code</FieldLabel>
+        <Controller
+          control={control}
+          name="inviteCode"
+          render={({ field: { onChange, value }, fieldState: { error } }) => (
+            <>
+              <TextField
+                value={value}
+                onChangeText={(text) => onChange(text.toUpperCase())}
+                placeholder="ABCD1234"
+                autoCapitalize="characters"
+              />
+              <ErrorText message={error?.message} />
+            </>
+          )}
+        />
+
+        {inviteCode.trim().length >= 4 && (
+          <View style={styles.previewCard}>
+            {isPreviewLoading ? (
+              <Text style={styles.previewText}>Looking up group…</Text>
+            ) : preview ? (
+              <>
+                <Text style={styles.previewLabel}>You are joining</Text>
+                <Text style={styles.previewName}>{preview.name}</Text>
+              </>
+            ) : (
+              <Text style={styles.previewError}>No group found for that code</Text>
+            )}
+          </View>
+        )}
+
+        <PrimaryButton
+          label={isSubmitting || joinGroup.isPending ? 'Joining…' : 'Join group'}
+          onPress={onSubmit}
+          disabled={isSubmitting || joinGroup.isPending || !preview}
+        />
+      </ScreenContainer>
+    </ScrollView>
+  );
+}
+
+const styles = StyleSheet.create({
+  previewCard: {
+    backgroundColor: brand.white,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#E9ECEF',
+    padding: 16,
+    marginBottom: 8,
+  },
+  previewLabel: {
+    fontSize: 13,
+    color: brand.muted,
+    marginBottom: 4,
+  },
+  previewName: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: brand.text,
+  },
+  previewText: {
+    fontSize: 15,
+    color: brand.muted,
+  },
+  previewError: {
+    fontSize: 15,
+    color: brand.danger,
+  },
+});
