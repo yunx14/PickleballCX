@@ -7,6 +7,8 @@ import type {
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
 import { supabase } from '@/lib/supabase';
+import type { UpcomingEventsFilter } from '@/lib/event-filters';
+import { filterUpcomingEvents } from '@/lib/event-filters';
 import { useAuth } from '@/providers/AuthProvider';
 
 import { queryKeys } from './query-keys';
@@ -32,6 +34,8 @@ export interface EventRow {
   skill_min: SkillLevel | null;
   skill_max: SkillLevel | null;
   description: string | null;
+  lat: number | null;
+  lng: number | null;
   created_by: string;
   created_at: string;
   courts: EventCourt | null;
@@ -62,6 +66,8 @@ async function fetchUpcomingEvents(): Promise<EventRow[]> {
       skill_min,
       skill_max,
       description,
+      lat,
+      lng,
       created_by,
       created_at,
       courts ( name, address, num_courts ),
@@ -92,6 +98,8 @@ async function fetchGroupEvents(groupId: string): Promise<EventRow[]> {
       skill_min,
       skill_max,
       description,
+      lat,
+      lng,
       created_by,
       created_at,
       courts ( name, address, num_courts ),
@@ -122,6 +130,8 @@ async function fetchEvent(eventId: string): Promise<EventRow | null> {
       skill_min,
       skill_max,
       description,
+      lat,
+      lng,
       created_by,
       created_at,
       courts ( name, address, num_courts ),
@@ -183,6 +193,8 @@ function normalizeEventRow(row: Record<string, unknown>): EventRow {
     skill_min: row.skill_min as SkillLevel | null,
     skill_max: row.skill_max as SkillLevel | null,
     description: row.description as string | null,
+    lat: row.lat as number | null,
+    lng: row.lng as number | null,
     created_by: row.created_by as string,
     created_at: row.created_at as string,
     courts: courts && !Array.isArray(courts) ? (courts as EventCourt) : null,
@@ -190,10 +202,30 @@ function normalizeEventRow(row: Record<string, unknown>): EventRow {
   };
 }
 
-export function useUpcomingEvents() {
+export function useUpcomingEvents(filter: UpcomingEventsFilter = {}) {
+  const { session, profile } = useAuth();
+  const userId = filter.userId ?? session?.user.id;
+  const userSkill = filter.userSkill ?? profile?.skill_level ?? null;
+
+  const queryFilter = {
+    userId,
+    userSkill,
+    lat: filter.location?.lat,
+    lng: filter.location?.lng,
+    radiusMi: filter.radiusMi,
+  };
+
   return useQuery({
-    queryKey: queryKeys.events.upcoming(),
-    queryFn: fetchUpcomingEvents,
+    queryKey: queryKeys.events.upcoming(queryFilter),
+    queryFn: async () => {
+      const events = await fetchUpcomingEvents();
+      return filterUpcomingEvents(events, {
+        userId,
+        userSkill,
+        location: filter.location,
+        radiusMi: filter.radiusMi,
+      });
+    },
   });
 }
 
@@ -265,7 +297,7 @@ export function useCreateEvent() {
       if (groupId) {
         void queryClient.invalidateQueries({ queryKey: queryKeys.events.group(groupId) });
       }
-      void queryClient.invalidateQueries({ queryKey: queryKeys.events.upcoming() });
+      void queryClient.invalidateQueries({ queryKey: [...queryKeys.events.all, 'upcoming'] });
     },
   });
 }
@@ -303,7 +335,7 @@ export function useUpdateEvent(eventId: string, groupId: string | null) {
       if (groupId) {
         void queryClient.invalidateQueries({ queryKey: queryKeys.events.group(groupId) });
       }
-      void queryClient.invalidateQueries({ queryKey: queryKeys.events.upcoming() });
+      void queryClient.invalidateQueries({ queryKey: [...queryKeys.events.all, 'upcoming'] });
     },
   });
 }
@@ -322,7 +354,7 @@ export function useDeleteEvent(eventId: string, groupId: string | null) {
       if (groupId) {
         void queryClient.invalidateQueries({ queryKey: queryKeys.events.group(groupId) });
       }
-      void queryClient.invalidateQueries({ queryKey: queryKeys.events.upcoming() });
+      void queryClient.invalidateQueries({ queryKey: [...queryKeys.events.all, 'upcoming'] });
     },
   });
 }
@@ -391,7 +423,7 @@ export function useRsvp(eventId: string) {
     },
     onSettled: () => {
       void queryClient.invalidateQueries({ queryKey: queryKeys.events.rsvps(eventId) });
-      void queryClient.invalidateQueries({ queryKey: queryKeys.events.upcoming() });
+      void queryClient.invalidateQueries({ queryKey: [...queryKeys.events.all, 'upcoming'] });
     },
   });
 }

@@ -8,10 +8,12 @@ import { formatSessionDateTime } from '@/lib/format';
 export function SessionCard({
   event,
   goingCount,
+  distanceLabel,
   onPress,
 }: {
   event: EventRow;
   goingCount?: number;
+  distanceLabel?: string;
   onPress: () => void;
 }) {
   const headcount =
@@ -31,6 +33,7 @@ export function SessionCard({
         {event.groups?.name ?? 'Open play'} · {SESSION_TYPE_LABELS[event.session_type]}
       </Text>
       {event.courts?.address ? <Text style={styles.address}>{event.courts.address}</Text> : null}
+      {distanceLabel ? <Text style={styles.distance}>{distanceLabel}</Text> : null}
       {headcount ? <Text style={styles.headcount}>{headcount}</Text> : null}
     </Pressable>
   );
@@ -68,6 +71,12 @@ const styles = StyleSheet.create({
   address: {
     fontSize: 14,
     color: brand.muted,
+    marginBottom: 6,
+  },
+  distance: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: brand.green700,
     marginBottom: 6,
   },
   headcount: {

@@ -9,7 +9,10 @@
     "userInterfaceStyle": "automatic",
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.pickleballcx.app"
+      "bundleIdentifier": "com.pickleballcx.app",
+      "infoPlist": {
+        "NSLocationWhenInUseUsageDescription": "PickleballCX uses your location to show nearby open sessions."
+      }
     },
     "android": {
       "adaptiveIcon": {
@@ -19,7 +22,8 @@
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
       },
       "package": "com.pickleballcx.app",
-      "predictiveBackGestureEnabled": false
+      "predictiveBackGestureEnabled": false,
+      "permissions": ["ACCESS_COARSE_LOCATION", "ACCESS_FINE_LOCATION"]
     },
     "web": {
       "bundler": "metro",
@@ -29,6 +33,12 @@
     "plugins": [
       "expo-router",
       "expo-secure-store",
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "PickleballCX uses your location to show nearby open sessions."
+        }
+      ],
       [
         "expo-splash-screen",
         {

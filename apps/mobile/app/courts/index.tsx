@@ -49,7 +49,7 @@ export default function CourtsScreen() {
         ListHeaderComponent={
           <View style={styles.header}>
             <Text style={styles.mapNote}>
-              Global court catalog for all sessions. Map pins and geocoding are coming soon.
+              Global court catalog for all sessions. Addresses are geocoded when courts are saved.
             </Text>
             {isAppAdmin ? (
               <PrimaryButton label="Add court" onPress={() => router.push(newCourtRoute)} />

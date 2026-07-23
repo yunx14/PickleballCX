@@ -12,9 +12,18 @@ export const queryKeys = {
   },
   events: {
     all: ['events'] as const,
-    upcoming: () => [...queryKeys.events.all, 'upcoming'] as const,
+    upcoming: (filter?: {
+      userId?: string;
+      userSkill?: string | null;
+      lat?: number;
+      lng?: number;
+      radiusMi?: number;
+    }) => [...queryKeys.events.all, 'upcoming', filter ?? {}] as const,
     group: (groupId: string) => [...queryKeys.events.all, 'group', groupId] as const,
     detail: (eventId: string) => [...queryKeys.events.all, 'detail', eventId] as const,
     rsvps: (eventId: string) => [...queryKeys.events.all, 'rsvps', eventId] as const,
+  },
+  location: {
+    current: () => ['location', 'current'] as const,
   },
 };

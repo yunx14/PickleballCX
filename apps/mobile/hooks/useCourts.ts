@@ -1,6 +1,7 @@
 import type { CourtType } from '@pickleballcx/shared';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
+import { geocodeAddress } from '@/lib/geocoding';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/providers/AuthProvider';
 
@@ -66,13 +67,15 @@ export function useCreateCourt() {
     }) => {
       if (!session?.user.id) throw new Error('Not authenticated');
 
+      const { lat, lng } = await geocodeAddress(input.address);
+
       const { data, error } = await supabase
         .from('courts')
         .insert({
           name: input.name,
           address: input.address,
-          lat: 0,
-          lng: 0,
+          lat,
+          lng,
           court_type: input.courtType,
           num_courts: input.numCourts,
           notes: input.notes?.trim() || null,
@@ -101,11 +104,15 @@ export function useUpdateCourt(courtId: string) {
       numCourts: number;
       notes?: string;
     }) => {
+      const { lat, lng } = await geocodeAddress(input.address);
+
       const { data, error } = await supabase
         .from('courts')
         .update({
           name: input.name,
           address: input.address,
+          lat,
+          lng,
           court_type: input.courtType,
           num_courts: input.numCourts,
           notes: input.notes?.trim() || null,

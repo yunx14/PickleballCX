@@ -1,27 +1,30 @@
-# Maps & Geocoding (Deferred)
+# Maps & Geocoding
 
-Phase 2 ships court CRUD with **address text only**. Coordinates are stored as `lat: 0, lng: 0` until map integration is added.
+Court addresses are geocoded on save. Session coordinates are copied from courts automatically.
 
-## When to implement
+## Geocoding
 
-After obtaining a **Mapbox** or **Google Maps** API key (see [PLAN.md](../../PLAN.md)).
+- **Mapbox** (recommended): set `EXPO_PUBLIC_MAPBOX_ACCESS_TOKEN` in `apps/mobile/.env`
+- **Fallback**: OpenStreetMap Nominatim (no key required; fine for dev/low volume)
 
-## Planned work
+Implementation: [`lib/geocoding.ts`](../lib/geocoding.ts)
 
-1. **Install map library** — `react-native-maps` with Mapbox or Google provider
-2. **Geocoding on court create** — convert address → lat/lng on save (Mapbox Geocoding API or Google Geocoding)
-3. **Map pin picker** — optional map on add/edit court form to refine location
-4. **Courts map tab** — map view on [`app/groups/[id]/courts/index.tsx`](../app/groups/[id]/courts/index.tsx) showing group court pins
-5. **Migration backfill** — optional script to geocode existing courts with `lat/lng = 0`
+## Location-based discovery
 
-## Files to touch
+The Sessions tab uses `expo-location` to read the device position and filter **public open sessions** by radius (25 / 50 / 100 mi). Group sessions and your own sessions always appear.
 
-- `apps/mobile/app/groups/[id]/courts/new.tsx` — geocode on submit
-- `apps/mobile/app/groups/[id]/courts/[courtId].tsx` — show map on detail
-- `apps/mobile/app/groups/[id]/courts/index.tsx` — list/map toggle
-- `apps/mobile/lib/geocoding.ts` — new helper (keep API key server-side or use restricted client key)
-- `apps/mobile/.env` — `EXPO_PUBLIC_MAPBOX_TOKEN` or similar
+Implementation:
 
-## Security note
+- [`hooks/useUserLocation.ts`](../hooks/useUserLocation.ts)
+- [`lib/event-filters.ts`](../lib/event-filters.ts)
+- [`lib/geo.ts`](../lib/geo.ts)
 
-Prefer geocoding via a Supabase Edge Function if using a secret API key, rather than embedding unrestricted keys in the mobile client.
+## Re-geocode existing courts
+
+Courts saved before geocoding may still have `lat/lng = 0`. Edit and re-save each court as an app admin to refresh coordinates.
+
+## Deferred
+
+- Map pin picker on court forms
+- Map view of courts
+- Server-side geocoding Edge Function (if hiding Mapbox secret)

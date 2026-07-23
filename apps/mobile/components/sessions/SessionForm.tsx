@@ -8,7 +8,7 @@ import {
   type SessionType,
   type SkillLevel,
 } from '@pickleballcx/shared';
-import { useState } from 'react';
+import { createElement, useEffect, useState } from 'react';
 import { Controller, type Control, type FieldErrors } from 'react-hook-form';
 import {
   Modal,
@@ -67,10 +67,6 @@ export function SessionForm({
   isSubmitting: boolean;
   onSubmit: () => void;
 }) {
-  const [pickerMode, setPickerMode] = useState<'date' | 'time' | null>(
-    Platform.OS === 'ios' ? 'date' : null,
-  );
-
   return (
     <>
       <Title>{title}</Title>
@@ -95,54 +91,7 @@ export function SessionForm({
         control={control}
         name="startsAt"
         render={({ field: { value, onChange } }) => (
-          <>
-            <Pressable
-              onPress={() => {
-                if (Platform.OS === 'android') setPickerMode('date');
-              }}
-              style={styles.dateButton}>
-              <Text style={styles.dateButtonText}>
-                {formatSessionDateTime(value.toISOString())}
-              </Text>
-              {Platform.OS === 'android' ? (
-                <Text style={styles.dateButtonHint}>Tap to change date and time</Text>
-              ) : null}
-            </Pressable>
-
-            {(Platform.OS === 'ios' || pickerMode === 'date') && (
-              <DateTimePicker
-                value={value}
-                mode="date"
-                minimumDate={new Date()}
-                display={Platform.OS === 'ios' ? 'inline' : 'default'}
-                onChange={(event, date) => {
-                  if (Platform.OS === 'android') {
-                    if (event.type === 'dismissed') {
-                      setPickerMode(null);
-                      return;
-                    }
-                    setPickerMode('time');
-                  }
-                  if (date) onChange(mergeDatePart(value, date));
-                }}
-              />
-            )}
-
-            {(Platform.OS === 'ios' || pickerMode === 'time') && (
-              <DateTimePicker
-                value={value}
-                mode="time"
-                display={Platform.OS === 'ios' ? 'spinner' : 'default'}
-                onChange={(event, date) => {
-                  if (Platform.OS === 'android') {
-                    setPickerMode(null);
-                    if (event.type === 'dismissed') return;
-                  }
-                  if (date) onChange(mergeTimePart(value, date));
-                }}
-              />
-            )}
-          </>
+          <DateTimeDropdown value={value} onChange={onChange} />
         )}
       />
       <ErrorText message={errors.startsAt?.message} />
@@ -227,6 +176,102 @@ export function SessionForm({
         onPress={onSubmit}
         disabled={isSubmitting}
       />
+    </>
+  );
+}
+
+function toDatetimeLocalValue(date: Date): string {
+  const offsetMs = date.getTimezoneOffset() * 60_000;
+  return new Date(date.getTime() - offsetMs).toISOString().slice(0, 16);
+}
+
+function DateTimeDropdown({
+  value,
+  onChange,
+}: {
+  value: Date;
+  onChange: (date: Date) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const [draft, setDraft] = useState(value);
+
+  useEffect(() => {
+    if (open) setDraft(value);
+  }, [open, value]);
+
+  const apply = () => {
+    onChange(draft);
+    setOpen(false);
+  };
+
+  return (
+    <>
+      <Pressable
+        accessibilityRole="button"
+        onPress={() => setOpen(true)}
+        style={({ pressed }) => [styles.dateButton, pressed && styles.dropdownTriggerPressed]}>
+        <Text style={styles.dateButtonText}>{formatSessionDateTime(value.toISOString())}</Text>
+        <Text style={styles.dateButtonHint}>Tap to change date and time</Text>
+      </Pressable>
+
+      <Modal visible={open} transparent animationType="fade" onRequestClose={() => setOpen(false)}>
+        <View style={styles.modalBackdrop}>
+          <Pressable style={styles.modalBackdropPress} onPress={() => setOpen(false)} />
+          <View style={styles.modalSheet}>
+            <Text style={styles.modalTitle}>Date & time</Text>
+
+            {Platform.OS === 'web' ? (
+              <View style={styles.webDateTimeInputWrap}>
+                {createElement('input', {
+                  type: 'datetime-local',
+                  value: toDatetimeLocalValue(draft),
+                  min: toDatetimeLocalValue(new Date()),
+                  onChange: (event: { target: { value: string } }) => {
+                    if (event.target.value) {
+                      setDraft(new Date(event.target.value));
+                    }
+                  },
+                  style: {
+                    width: '100%',
+                    fontSize: 16,
+                    padding: 14,
+                    borderRadius: 12,
+                    border: '1px solid #DEE2E6',
+                    backgroundColor: brand.white,
+                    color: brand.text,
+                    boxSizing: 'border-box',
+                  },
+                })}
+              </View>
+            ) : (
+              <>
+                <DateTimePicker
+                  value={draft}
+                  mode="date"
+                  minimumDate={new Date()}
+                  display={Platform.OS === 'ios' ? 'inline' : 'default'}
+                  onChange={(_event, date) => {
+                    if (date) setDraft((current) => mergeDatePart(current, date));
+                  }}
+                />
+                <DateTimePicker
+                  value={draft}
+                  mode="time"
+                  display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+                  onChange={(_event, date) => {
+                    if (date) setDraft((current) => mergeTimePart(current, date));
+                  }}
+                />
+              </>
+            )}
+
+            <PrimaryButton label="Done" onPress={apply} />
+            <Pressable onPress={() => setOpen(false)} style={styles.modalCancel}>
+              <Text style={styles.modalCancelText}>Cancel</Text>
+            </Pressable>
+          </View>
+        </View>
+      </Modal>
     </>
   );
 }
@@ -483,6 +528,9 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
     color: brand.muted,
+  },
+  webDateTimeInputWrap: {
+    marginBottom: 16,
   },
   dateButton: {
     backgroundColor: brand.white,
