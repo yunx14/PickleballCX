@@ -11,9 +11,16 @@ import {
 import { PrimaryButton } from '@/components/ui/Screen';
 import { brand } from '@/constants/brand';
 import { useGroupEvents } from '@/hooks/useEvents';
+import { useGroupAnnouncements } from '@/hooks/useGroupAnnouncements';
 import { useGroupMembers } from '@/hooks/useGroupMembers';
 import { useGroup, useGroups } from '@/hooks/useGroups';
-import { groupMembersRoute, groupSessionsRoute, newSessionRoute } from '@/lib/routes';
+import { formatRelativeTime } from '@/lib/format';
+import {
+  groupAnnouncementsRoute,
+  groupMembersRoute,
+  groupSessionsRoute,
+  newSessionRoute,
+} from '@/lib/routes';
 
 export default function GroupHomeScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -22,8 +29,11 @@ export default function GroupHomeScreen() {
   const { data: groups } = useGroups();
   const { data: members } = useGroupMembers(groupId);
   const { data: sessions } = useGroupEvents(groupId);
+  const { data: announcements } = useGroupAnnouncements(groupId);
 
   const membership = groups?.find((item) => item.id === groupId);
+  const isAdmin = membership?.role === 'admin';
+  const pinnedAnnouncements = (announcements ?? []).filter((item) => item.pinned).slice(0, 2);
 
   if (isLoading) {
     return (
@@ -71,6 +81,34 @@ export default function GroupHomeScreen() {
         label="Schedule session"
         onPress={() => router.push(newSessionRoute(groupId))}
       />
+
+      {pinnedAnnouncements.length > 0 ? (
+        <View style={styles.announcementsBlock}>
+          <Text style={styles.announcementsHeading}>Announcements</Text>
+          {pinnedAnnouncements.map((item) => (
+            <View key={item.id} style={styles.announcementCard}>
+              <Text style={styles.announcementTitle}>{item.title}</Text>
+              <Text style={styles.announcementMeta}>
+                {item.author_name} · {formatRelativeTime(item.created_at)}
+              </Text>
+              <Text style={styles.announcementBody} numberOfLines={3}>
+                {item.body}
+              </Text>
+            </View>
+          ))}
+        </View>
+      ) : null}
+
+      <Pressable
+        onPress={() => router.push(groupAnnouncementsRoute(groupId))}
+        style={({ pressed }) => [styles.linkCard, pressed && styles.linkCardPressed]}>
+        <Text style={styles.linkTitle}>Announcements</Text>
+        <Text style={styles.linkBody}>
+          {isAdmin
+            ? 'Post updates and pin important messages for your group'
+            : 'Group news and schedule updates from admins'}
+        </Text>
+      </Pressable>
 
       <Pressable
         onPress={() => router.push(groupSessionsRoute(groupId))}
@@ -171,6 +209,37 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: brand.muted,
     marginTop: 4,
+  },
+  announcementsBlock: {
+    gap: 10,
+    marginBottom: 4,
+  },
+  announcementsHeading: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: brand.text,
+  },
+  announcementCard: {
+    backgroundColor: brand.white,
+    borderRadius: 12,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: '#E9ECEF',
+    gap: 4,
+  },
+  announcementTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: brand.text,
+  },
+  announcementMeta: {
+    fontSize: 12,
+    color: brand.muted,
+  },
+  announcementBody: {
+    fontSize: 14,
+    lineHeight: 20,
+    color: brand.text,
   },
   linkCard: {
     backgroundColor: brand.white,

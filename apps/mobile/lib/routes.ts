@@ -12,6 +12,14 @@ export function groupSessionsRoute(groupId: string): Href {
   return `/groups/${groupId}/sessions` as Href;
 }
 
+export function groupAnnouncementsRoute(groupId: string): Href {
+  return `/groups/${groupId}/announcements` as Href;
+}
+
+export function newGroupAnnouncementRoute(groupId: string): Href {
+  return `/groups/${groupId}/announcements/new` as Href;
+}
+
 export function newSessionRoute(groupId?: string): Href {
   if (groupId) {
     return `/sessions/new?groupId=${groupId}` as Href;

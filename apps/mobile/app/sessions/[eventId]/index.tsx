@@ -11,6 +11,7 @@ import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from
 
 import { SkillBadge } from '@/components/ui/SkillBadge';
 import { PrimaryButton } from '@/components/ui/Screen';
+import { SessionComments } from '@/components/sessions/SessionComments';
 import { brand } from '@/constants/brand';
 import {
   countGoing,
@@ -219,6 +220,8 @@ export default function SessionDetailScreen() {
             ))}
         </>
       ) : null}
+
+      <SessionComments eventId={id} />
     </ScrollView>
   );
 }

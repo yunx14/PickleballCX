@@ -6,6 +6,7 @@ import 'react-native-reanimated';
 
 import { AuthProvider } from '@/providers/AuthProvider';
 import { QueryProvider } from '@/providers/QueryProvider';
+import { PushNotificationRegistration } from '@/components/PushNotificationRegistration';
 
 export {
   ErrorBoundary,
@@ -39,6 +40,7 @@ export default function RootLayout() {
   return (
     <QueryProvider>
       <AuthProvider>
+        <PushNotificationRegistration />
         <Stack screenOptions={{ headerShown: false }}>
           <Stack.Screen name="(auth)" />
           <Stack.Screen name="(tabs)" />

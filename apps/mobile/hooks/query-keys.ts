@@ -26,4 +26,10 @@ export const queryKeys = {
   location: {
     current: () => ['location', 'current'] as const,
   },
+  comments: {
+    event: (eventId: string) => ['comments', 'event', eventId] as const,
+  },
+  announcements: {
+    group: (groupId: string) => ['announcements', 'group', groupId] as const,
+  },
 };

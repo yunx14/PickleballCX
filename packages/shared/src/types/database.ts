@@ -300,7 +300,22 @@ export interface Database {
           created_at?: string;
           updated_at?: string;
         };
-        Relationships: [];
+        Relationships: [
+          {
+            foreignKeyName: 'event_comments_event_id_fkey',
+            columns: ['event_id'],
+            isOneToOne: false,
+            referencedRelation: 'events',
+            referencedColumns: ['id'],
+          },
+          {
+            foreignKeyName: 'event_comments_user_id_fkey',
+            columns: ['user_id'],
+            isOneToOne: false,
+            referencedRelation: 'profiles',
+            referencedColumns: ['id'],
+          },
+        ];
       };
       group_announcements: {
         Row: {
@@ -333,7 +348,57 @@ export interface Database {
           created_at?: string;
           updated_at?: string;
         };
-        Relationships: [];
+        Relationships: [
+          {
+            foreignKeyName: 'group_announcements_author_id_fkey',
+            columns: ['author_id'],
+            isOneToOne: false,
+            referencedRelation: 'profiles',
+            referencedColumns: ['id'],
+          },
+          {
+            foreignKeyName: 'group_announcements_group_id_fkey',
+            columns: ['group_id'],
+            isOneToOne: false,
+            referencedRelation: 'groups',
+            referencedColumns: ['id'],
+          },
+        ];
+      };
+      push_tokens: {
+        Row: {
+          id: string;
+          user_id: string;
+          token: string;
+          platform: 'ios' | 'android' | 'web';
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          token: string;
+          platform: 'ios' | 'android' | 'web';
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          user_id?: string;
+          token?: string;
+          platform?: 'ios' | 'android' | 'web';
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'push_tokens_user_id_fkey',
+            columns: ['user_id'],
+            isOneToOne: false,
+            referencedRelation: 'profiles',
+            referencedColumns: ['id'],
+          },
+        ];
       };
     };
     Views: Record<string, never>;
