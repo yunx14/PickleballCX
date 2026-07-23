@@ -1,4 +1,4 @@
-import { StyleSheet, Text, TextInput, View } from 'react-native';
+import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 
 import { brand } from '@/constants/brand';
 
@@ -24,12 +24,17 @@ export function PrimaryButton({
   disabled?: boolean;
 }) {
   return (
-    <Text
+    <Pressable
       accessibilityRole="button"
-      onPress={disabled ? undefined : onPress}
-      style={[styles.primaryButton, disabled && styles.primaryButtonDisabled]}>
-      {label}
-    </Text>
+      onPress={onPress}
+      disabled={disabled}
+      style={({ pressed }) => [
+        styles.primaryButton,
+        disabled && styles.primaryButtonDisabled,
+        pressed && !disabled && styles.primaryButtonPressed,
+      ]}>
+      <Text style={styles.primaryButtonText}>{label}</Text>
+    </Pressable>
   );
 }
 
@@ -117,17 +122,22 @@ const styles = StyleSheet.create({
   },
   primaryButton: {
     backgroundColor: brand.green700,
+    borderRadius: 12,
+    overflow: 'hidden',
+    marginTop: 8,
+  },
+  primaryButtonPressed: {
+    opacity: 0.85,
+  },
+  primaryButtonDisabled: {
+    opacity: 0.6,
+  },
+  primaryButtonText: {
     color: brand.white,
     textAlign: 'center',
     fontSize: 16,
     fontWeight: '700',
     paddingVertical: 16,
-    borderRadius: 12,
-    overflow: 'hidden',
-    marginTop: 8,
-  },
-  primaryButtonDisabled: {
-    opacity: 0.6,
   },
   link: {
     color: brand.green700,

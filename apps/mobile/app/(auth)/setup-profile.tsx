@@ -6,7 +6,8 @@ import {
   type ProfileSetupInput,
   type SkillLevel,
 } from '@pickleballcx/shared';
-import { useState } from 'react';
+import { router } from 'expo-router';
+import { useEffect, useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
 import { Pressable, ScrollView, StyleSheet, Text } from 'react-native';
 
@@ -24,45 +25,88 @@ import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/providers/AuthProvider';
 
 export default function SetupProfileScreen() {
-  const { session, refreshProfile } = useAuth();
+  const { session, profile, refreshProfile } = useAuth();
   const [formError, setFormError] = useState<string>();
   const {
     control,
     handleSubmit,
-    formState: { isSubmitting },
+    reset,
+    formState: { isSubmitting, errors },
   } = useForm<ProfileSetupInput>({
     resolver: zodResolver(profileSetupSchema),
     defaultValues: { displayName: '', skillLevel: undefined },
   });
 
-  const onSubmit = handleSubmit(async (values) => {
-    if (!session?.user.id) return;
+  useEffect(() => {
+    if (!profile) return;
+    reset({
+      displayName: profile.display_name?.trim() ? profile.display_name : '',
+      skillLevel: profile.skill_level ?? undefined,
+    });
+  }, [profile, reset]);
 
-    setFormError(undefined);
-    const { error } = await supabase
-      .from('profiles')
-      .update({
-        display_name: values.displayName,
-        skill_level: values.skillLevel,
-      })
-      .eq('id', session.user.id);
+  const onSubmit = handleSubmit(
+    async (values) => {
+      if (!session?.user.id) {
+        setFormError('Sign in after confirming your email to finish setting up your profile.');
+        router.replace('/(auth)/login');
+        return;
+      }
 
-    if (error) {
-      setFormError(error.message);
-      return;
-    }
+      setFormError(undefined);
 
-    await refreshProfile();
-  });
+      const { data, error } = await supabase.rpc('complete_profile_setup', {
+        p_display_name: values.displayName,
+        p_skill_level: values.skillLevel,
+      });
+
+      if (error) {
+        if (error.message.includes('complete_profile_setup') || error.code === 'PGRST202') {
+          setFormError(
+            'Profile setup is not available yet. Run the latest Supabase migrations (complete_profile_setup function).',
+          );
+          return;
+        }
+        setFormError(error.message);
+        return;
+      }
+
+      if (!data?.skill_level) {
+        setFormError('Profile could not be saved. Please try again.');
+        return;
+      }
+
+      const { data: verified, error: verifyError } = await supabase
+        .from('profiles')
+        .select('id, display_name, skill_level')
+        .eq('id', session.user.id)
+        .single();
+
+      if (verifyError || !verified?.skill_level) {
+        setFormError(
+          verifyError?.message ??
+            'Profile saved but could not be verified. Check that database migrations have been applied.',
+        );
+        return;
+      }
+
+      await refreshProfile();
+      router.replace('/(tabs)');
+    },
+    () => {
+      setFormError('Please enter a display name and pick your skill level.');
+    },
+  );
 
   return (
-    <ScrollView contentContainerStyle={{ flexGrow: 1 }}>
+    <ScrollView contentContainerStyle={{ flexGrow: 1 }} keyboardShouldPersistTaps="handled">
       <ScreenContainer>
         <Title>Set up your profile</Title>
         <Subtitle>
           Your skill level shows on RSVP lists so groups can match games. It is self-reported.
         </Subtitle>
         <ErrorText message={formError} />
+        <ErrorText message={errors.displayName?.message ?? errors.skillLevel?.message} />
 
         <FieldLabel>Display name</FieldLabel>
         <Controller

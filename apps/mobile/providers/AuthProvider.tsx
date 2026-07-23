@@ -93,15 +93,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (isLoading) return;
 
-    const inAuthGroup = segments[0] === '(auth)';
-    const onSetupProfile = segments.includes('setup-profile');
+    const segmentList = segments as string[];
+    const inAuthGroup = segmentList[0] === '(auth)';
+    const onSetupProfile = segmentList.includes('setup-profile');
+    const onConfirmEmail = segmentList.includes('confirm-email');
 
     if (!session && !inAuthGroup) {
       router.replace('/(auth)/login');
       return;
     }
 
-    if (session && !isProfileSetupComplete && !onSetupProfile) {
+    if (!session && onSetupProfile) {
+      router.replace('/(auth)/login');
+      return;
+    }
+
+    if (session && !isProfileSetupComplete && !onSetupProfile && !onConfirmEmail) {
       router.replace('/(auth)/setup-profile');
       return;
     }

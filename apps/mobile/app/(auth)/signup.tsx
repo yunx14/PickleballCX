@@ -30,19 +30,35 @@ export default function SignUpScreen() {
 
   const onSubmit = handleSubmit(async (values) => {
     setFormError(undefined);
-    const { error } = await supabase.auth.signUp({
+
+    const { data, error } = await supabase.auth.signUp({
       email: values.email,
       password: values.password,
     });
+
     if (error) {
       setFormError(error.message);
       return;
     }
+
+    if (!data.user) {
+      setFormError('Could not create your account. Please try again.');
+      return;
+    }
+
+    if (!data.session) {
+      router.replace({
+        pathname: '/(auth)/confirm-email',
+        params: { email: values.email },
+      });
+      return;
+    }
+
     router.replace('/(auth)/setup-profile');
   });
 
   return (
-    <ScrollView contentContainerStyle={{ flexGrow: 1 }}>
+    <ScrollView contentContainerStyle={{ flexGrow: 1 }} keyboardShouldPersistTaps="handled">
       <ScreenContainer>
         <Title>Create account</Title>
         <Subtitle>Join your pickleball group with structured sessions and RSVPs.</Subtitle>

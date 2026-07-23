@@ -31,6 +31,9 @@ export function createSupabaseClient({
   });
 }
 
-export function isProfileComplete(profile: { display_name: string; skill_level: string | null } | null) {
-  return Boolean(profile?.display_name && profile?.skill_level);
+export function isProfileComplete(
+  profile: { display_name: string; skill_level: string | null } | null,
+) {
+  if (!profile?.skill_level) return false;
+  return profile.display_name.trim().length >= 2;
 }

@@ -304,7 +304,12 @@ alter table public.event_comments force row level security;
 alter table public.group_announcements force row level security;
 
 -- profiles
--- insert handled by handle_new_user() trigger (security definer)
+-- insert: handle_new_user() trigger, or profiles_insert_own fallback
+create policy "profiles_insert_own"
+  on public.profiles for insert
+  to authenticated
+  with check (auth.uid() = id);
+
 create policy "profiles_select_authenticated"
   on public.profiles for select
   to authenticated
