@@ -1,0 +1,27 @@
+{
+  "name": "pickleballcx",
+  "private": true,
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "turbo dev",
+    "build": "turbo build",
+    "lint": "turbo lint",
+    "typecheck": "turbo typecheck",
+    "mobile": "npm run start --workspace=mobile",
+    "mobile:ios": "npm run ios --workspace=mobile",
+    "mobile:android": "npm run android --workspace=mobile",
+    "mobile:web": "npm run web --workspace=mobile",
+    "db:types": "supabase gen types typescript --project-id emdafxfzuutjrdusrvlg > packages/shared/src/types/database.generated.ts"
+  },
+  "devDependencies": {
+    "turbo": "^2.5.4",
+    "typescript": "~6.0.3"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "packageManager": "npm@10.5.0"
+}
