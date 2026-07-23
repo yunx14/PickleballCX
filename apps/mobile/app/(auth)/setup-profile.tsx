@@ -55,38 +55,26 @@ export default function SetupProfileScreen() {
 
       setFormError(undefined);
 
-      const { data, error } = await supabase.rpc('complete_profile_setup', {
-        p_display_name: values.displayName,
-        p_skill_level: values.skillLevel,
-      });
+      const { data, error } = await supabase
+        .from('profiles')
+        .upsert(
+          {
+            id: session.user.id,
+            display_name: values.displayName.trim(),
+            skill_level: values.skillLevel,
+          },
+          { onConflict: 'id' },
+        )
+        .select('id, display_name, skill_level')
+        .single();
 
       if (error) {
-        if (error.message.includes('complete_profile_setup') || error.code === 'PGRST202') {
-          setFormError(
-            'Profile setup is not available yet. Run the latest Supabase migrations (complete_profile_setup function).',
-          );
-          return;
-        }
         setFormError(error.message);
         return;
       }
 
       if (!data?.skill_level) {
         setFormError('Profile could not be saved. Please try again.');
-        return;
-      }
-
-      const { data: verified, error: verifyError } = await supabase
-        .from('profiles')
-        .select('id, display_name, skill_level')
-        .eq('id', session.user.id)
-        .single();
-
-      if (verifyError || !verified?.skill_level) {
-        setFormError(
-          verifyError?.message ??
-            'Profile saved but could not be verified. Check that database migrations have been applied.',
-        );
         return;
       }
 

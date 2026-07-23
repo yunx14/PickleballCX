@@ -60,11 +60,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     let mounted = true;
 
-    supabase.auth.getSession().then(({ data }) => {
+    void (async () => {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
       if (!mounted) return;
-      setSession(data.session);
+
+      if (user) {
+        const { data } = await supabase.auth.getSession();
+        setSession(data.session);
+      } else {
+        setSession(null);
+      }
       setIsLoading(false);
-    });
+    })();
 
     const {
       data: { subscription },

@@ -278,13 +278,6 @@ export interface Database {
     };
     Views: Record<string, never>;
     Functions: {
-      complete_profile_setup: {
-        Args: {
-          p_display_name: string;
-          p_skill_level: SkillLevel;
-        };
-        Returns: Database['public']['Tables']['profiles']['Row'];
-      };
       get_group_preview_by_invite_code: {
         Args: { p_invite_code: string };
         Returns: { id: string; name: string }[];

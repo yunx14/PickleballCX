@@ -1,9 +1,18 @@
--- PickleballCX initial schema
--- Run via Supabase SQL editor or: supabase db push
+-- PickleballCX initial schema (skills-compliant rewrite)
+-- Private helpers live in non-exposed `private` schema; RPCs revoke PUBLIC execute.
 
 create extension if not exists "pgcrypto";
 
+-- ---------------------------------------------------------------------------
+-- Private schema (not exposed via Data API — see config.toml [api].schemas)
+-- ---------------------------------------------------------------------------
+create schema if not exists private;
+revoke all on schema private from public;
+grant usage on schema private to postgres, service_role;
+
+-- ---------------------------------------------------------------------------
 -- Enums
+-- ---------------------------------------------------------------------------
 create type public.skill_level as enum ('beginner', 'intermediate', 'advanced');
 create type public.profile_visibility as enum ('group_only', 'public');
 create type public.court_type as enum ('indoor', 'outdoor', 'both');
@@ -12,7 +21,9 @@ create type public.event_visibility as enum ('group_private', 'public');
 create type public.rsvp_status as enum ('going', 'maybe', 'not_going', 'waitlist');
 create type public.group_member_role as enum ('admin', 'member');
 
--- Profiles (extends auth.users)
+-- ---------------------------------------------------------------------------
+-- Tables
+-- ---------------------------------------------------------------------------
 create table public.profiles (
   id uuid primary key references auth.users (id) on delete cascade,
   display_name text not null default '',
@@ -24,7 +35,6 @@ create table public.profiles (
   updated_at timestamptz not null default now()
 );
 
--- Groups
 create table public.groups (
   id uuid primary key default gen_random_uuid(),
   name text not null,
@@ -42,7 +52,6 @@ create table public.group_members (
   primary key (group_id, user_id)
 );
 
--- Courts / venues
 create table public.courts (
   id uuid primary key default gen_random_uuid(),
   group_id uuid references public.groups (id) on delete cascade,
@@ -58,10 +67,6 @@ create table public.courts (
   updated_at timestamptz not null default now()
 );
 
-create index courts_lat_lng_idx on public.courts (lat, lng);
-create index courts_group_id_idx on public.courts (group_id);
-
--- Sessions / events
 create table public.events (
   id uuid primary key default gen_random_uuid(),
   group_id uuid references public.groups (id) on delete cascade,
@@ -80,11 +85,6 @@ create table public.events (
   updated_at timestamptz not null default now()
 );
 
-create index events_group_id_starts_at_idx on public.events (group_id, starts_at);
-create index events_starts_at_idx on public.events (starts_at);
-create index events_visibility_starts_at_idx on public.events (visibility, starts_at);
-
--- RSVPs
 create table public.event_rsvps (
   event_id uuid not null references public.events (id) on delete cascade,
   user_id uuid not null references public.profiles (id) on delete cascade,
@@ -94,7 +94,6 @@ create table public.event_rsvps (
   primary key (event_id, user_id)
 );
 
--- Session comments
 create table public.event_comments (
   id uuid primary key default gen_random_uuid(),
   event_id uuid not null references public.events (id) on delete cascade,
@@ -104,9 +103,6 @@ create table public.event_comments (
   updated_at timestamptz not null default now()
 );
 
-create index event_comments_event_id_created_at_idx on public.event_comments (event_id, created_at desc);
-
--- Group announcements
 create table public.group_announcements (
   id uuid primary key default gen_random_uuid(),
   group_id uuid not null references public.groups (id) on delete cascade,
@@ -118,10 +114,32 @@ create table public.group_announcements (
   updated_at timestamptz not null default now()
 );
 
--- Updated_at trigger
+-- ---------------------------------------------------------------------------
+-- Indexes (query paths + foreign keys for RLS/JOIN performance)
+-- ---------------------------------------------------------------------------
+create index group_members_user_id_idx on public.group_members (user_id);
+create index groups_created_by_idx on public.groups (created_by);
+create index courts_group_id_idx on public.courts (group_id);
+create index courts_created_by_idx on public.courts (created_by);
+create index courts_lat_lng_idx on public.courts (lat, lng);
+create index events_group_id_starts_at_idx on public.events (group_id, starts_at);
+create index events_court_id_idx on public.events (court_id);
+create index events_created_by_idx on public.events (created_by);
+create index events_starts_at_idx on public.events (starts_at);
+create index events_visibility_starts_at_idx on public.events (visibility, starts_at);
+create index event_rsvps_user_id_idx on public.event_rsvps (user_id);
+create index event_comments_event_id_created_at_idx on public.event_comments (event_id, created_at desc);
+create index event_comments_user_id_idx on public.event_comments (user_id);
+create index group_announcements_group_id_idx on public.group_announcements (group_id);
+
+-- ---------------------------------------------------------------------------
+-- Triggers
+-- ---------------------------------------------------------------------------
 create or replace function public.set_updated_at()
 returns trigger
 language plpgsql
+security invoker
+set search_path = ''
 as $$
 begin
   new.updated_at = now();
@@ -144,18 +162,18 @@ create trigger event_comments_set_updated_at before update on public.event_comme
 create trigger group_announcements_set_updated_at before update on public.group_announcements
   for each row execute function public.set_updated_at();
 
--- Auto-create profile row on signup
-create or replace function public.handle_new_user()
+-- Auto-create profile row on signup (private trigger — not RPC-callable)
+create or replace function private.handle_new_user()
 returns trigger
 language plpgsql
 security definer
-set search_path = public
+set search_path = ''
 as $$
 begin
   insert into public.profiles (id, display_name)
   values (
     new.id,
-    coalesce(new.raw_user_meta_data ->> 'display_name', split_part(new.email, '@', 1), 'Player')
+    coalesce(split_part(new.email, '@', 1), 'Player')
   );
   return new;
 end;
@@ -163,67 +181,16 @@ $$;
 
 create trigger on_auth_user_created
   after insert on auth.users
-  for each row execute function public.handle_new_user();
+  for each row execute function private.handle_new_user();
 
--- Helper: is current user a member of a group
-create or replace function public.is_group_member(target_group_id uuid)
-returns boolean
-language sql
-stable
-security definer
-set search_path = public
-as $$
-  select exists (
-    select 1
-    from public.group_members gm
-    where gm.group_id = target_group_id
-      and gm.user_id = auth.uid()
-  );
-$$;
-
--- Helper: is current user an admin of a group
-create or replace function public.is_group_admin(target_group_id uuid)
-returns boolean
-language sql
-stable
-security definer
-set search_path = public
-as $$
-  select exists (
-    select 1
-    from public.group_members gm
-    where gm.group_id = target_group_id
-      and gm.user_id = auth.uid()
-      and gm.role = 'admin'
-  );
-$$;
-
--- Helper: can current user access an event (read RSVPs, comments, etc.)
-create or replace function public.can_access_event(target_event_id uuid)
-returns boolean
-language sql
-stable
-security definer
-set search_path = public
-as $$
-  select exists (
-    select 1
-    from public.events e
-    where e.id = target_event_id
-      and (
-        e.created_by = auth.uid()
-        or (e.group_id is not null and public.is_group_member(e.group_id))
-        or (e.visibility = 'public' and e.starts_at > now())
-      )
-  );
-$$;
+revoke all on function private.handle_new_user() from public;
 
 -- Auto-add group creator as admin member
-create or replace function public.handle_new_group()
+create or replace function private.handle_new_group()
 returns trigger
 language plpgsql
 security definer
-set search_path = public
+set search_path = ''
 as $$
 begin
   insert into public.group_members (group_id, user_id, role)
@@ -234,15 +201,98 @@ $$;
 
 create trigger on_group_created
   after insert on public.groups
-  for each row execute function public.handle_new_group();
+  for each row execute function private.handle_new_group();
 
--- Invite-code helpers (RLS blocks direct group lookup by code before membership)
+revoke all on function private.handle_new_group() from public;
+
+-- ---------------------------------------------------------------------------
+-- Private RLS helpers (SECURITY DEFINER — not exposed via Data API)
+-- ---------------------------------------------------------------------------
+create or replace function private.is_group_member(target_group_id uuid)
+returns boolean
+language sql
+stable
+security definer
+set search_path = ''
+as $$
+  select exists (
+    select 1
+    from public.group_members gm
+    where gm.group_id = target_group_id
+      and gm.user_id = (select auth.uid())
+  );
+$$;
+
+create or replace function private.is_group_admin(target_group_id uuid)
+returns boolean
+language sql
+stable
+security definer
+set search_path = ''
+as $$
+  select exists (
+    select 1
+    from public.group_members gm
+    where gm.group_id = target_group_id
+      and gm.user_id = (select auth.uid())
+      and gm.role = 'admin'
+  );
+$$;
+
+create or replace function private.can_access_event(target_event_id uuid)
+returns boolean
+language sql
+stable
+security definer
+set search_path = ''
+as $$
+  select exists (
+    select 1
+    from public.events e
+    where e.id = target_event_id
+      and (
+        e.created_by = (select auth.uid())
+        or (e.group_id is not null and private.is_group_member(e.group_id))
+        or (e.visibility = 'public' and e.starts_at > now())
+      )
+  );
+$$;
+
+create or replace function private.shares_group_with(target_user_id uuid)
+returns boolean
+language sql
+stable
+security definer
+set search_path = ''
+as $$
+  select exists (
+    select 1
+    from public.group_members mine
+    join public.group_members theirs
+      on mine.group_id = theirs.group_id
+    where mine.user_id = (select auth.uid())
+      and theirs.user_id = target_user_id
+  );
+$$;
+
+revoke all on function private.is_group_member(uuid) from public;
+revoke all on function private.is_group_admin(uuid) from public;
+revoke all on function private.can_access_event(uuid) from public;
+revoke all on function private.shares_group_with(uuid) from public;
+grant execute on function private.is_group_member(uuid) to authenticated;
+grant execute on function private.is_group_admin(uuid) to authenticated;
+grant execute on function private.can_access_event(uuid) to authenticated;
+grant execute on function private.shares_group_with(uuid) to authenticated;
+
+-- ---------------------------------------------------------------------------
+-- Public RPCs (client-callable)
+-- ---------------------------------------------------------------------------
 create or replace function public.get_group_preview_by_invite_code(p_invite_code text)
 returns table (id uuid, name text)
 language sql
 stable
 security definer
-set search_path = public
+set search_path = ''
 as $$
   select g.id, g.name
   from public.groups g
@@ -253,12 +303,12 @@ create or replace function public.join_group_by_invite_code(p_invite_code text)
 returns uuid
 language plpgsql
 security definer
-set search_path = public
+set search_path = ''
 as $$
 declare
   v_group_id uuid;
 begin
-  if auth.uid() is null then
+  if (select auth.uid()) is null then
     raise exception 'Not authenticated';
   end if;
 
@@ -271,20 +321,23 @@ begin
   end if;
 
   insert into public.group_members (group_id, user_id, role)
-  values (v_group_id, auth.uid(), 'member')
+  values (v_group_id, (select auth.uid()), 'member')
   on conflict (group_id, user_id) do nothing;
 
   return v_group_id;
 end;
 $$;
 
-grant execute on function public.is_group_member(uuid) to authenticated;
-grant execute on function public.is_group_admin(uuid) to authenticated;
-grant execute on function public.can_access_event(uuid) to authenticated;
+revoke all on function public.get_group_preview_by_invite_code(text) from public;
+revoke all on function public.join_group_by_invite_code(text) from public;
+revoke all on function public.get_group_preview_by_invite_code(text) from anon;
+revoke all on function public.join_group_by_invite_code(text) from anon;
 grant execute on function public.get_group_preview_by_invite_code(text) to authenticated;
 grant execute on function public.join_group_by_invite_code(text) to authenticated;
 
--- RLS (all public tables)
+-- ---------------------------------------------------------------------------
+-- Row Level Security
+-- ---------------------------------------------------------------------------
 alter table public.profiles enable row level security;
 alter table public.groups enable row level security;
 alter table public.group_members enable row level security;
@@ -303,104 +356,116 @@ alter table public.event_rsvps force row level security;
 alter table public.event_comments force row level security;
 alter table public.group_announcements force row level security;
 
+-- Data API table grants (RLS still enforces row access)
+grant select, insert, update, delete on public.profiles to authenticated;
+grant select, insert, update, delete on public.groups to authenticated;
+grant select, insert, update, delete on public.group_members to authenticated;
+grant select, insert, update, delete on public.courts to authenticated;
+grant select, insert, update, delete on public.events to authenticated;
+grant select, insert, update, delete on public.event_rsvps to authenticated;
+grant select, insert, update, delete on public.event_comments to authenticated;
+grant select, insert, update, delete on public.group_announcements to authenticated;
+
 -- profiles
--- insert: handle_new_user() trigger, or profiles_insert_own fallback
 create policy "profiles_insert_own"
   on public.profiles for insert
   to authenticated
-  with check (auth.uid() = id);
+  with check ((select auth.uid()) = id);
 
-create policy "profiles_select_authenticated"
+create policy "profiles_select_visible"
   on public.profiles for select
   to authenticated
-  using (true);
+  using (
+    (select auth.uid()) = id
+    or profile_visibility = 'public'
+    or private.shares_group_with(id)
+  );
 
 create policy "profiles_update_own"
   on public.profiles for update
   to authenticated
-  using (auth.uid() = id)
-  with check (auth.uid() = id);
+  using ((select auth.uid()) = id)
+  with check ((select auth.uid()) = id);
 
 -- groups
 create policy "groups_select_member_or_creator"
   on public.groups for select
   to authenticated
-  using (public.is_group_member(id) or created_by = auth.uid());
+  using (private.is_group_member(id) or created_by = (select auth.uid()));
 
 create policy "groups_insert_own"
   on public.groups for insert
   to authenticated
-  with check (created_by = auth.uid());
+  with check (created_by = (select auth.uid()));
 
 create policy "groups_update_admin"
   on public.groups for update
   to authenticated
-  using (public.is_group_admin(id))
-  with check (public.is_group_admin(id));
+  using (private.is_group_admin(id))
+  with check (private.is_group_admin(id));
 
 create policy "groups_delete_admin"
   on public.groups for delete
   to authenticated
-  using (public.is_group_admin(id));
+  using (private.is_group_admin(id));
 
 -- group_members
--- inserts: creator via handle_new_group() trigger, joins via join_group_by_invite_code(), admins via policy below
 create policy "group_members_select_member"
   on public.group_members for select
   to authenticated
-  using (public.is_group_member(group_id));
+  using (private.is_group_member(group_id));
 
 create policy "group_members_insert_admin"
   on public.group_members for insert
   to authenticated
-  with check (public.is_group_admin(group_id));
+  with check (private.is_group_admin(group_id));
 
 create policy "group_members_update_admin"
   on public.group_members for update
   to authenticated
-  using (public.is_group_admin(group_id))
-  with check (public.is_group_admin(group_id));
+  using (private.is_group_admin(group_id))
+  with check (private.is_group_admin(group_id));
 
 create policy "group_members_delete_self_or_admin"
   on public.group_members for delete
   to authenticated
   using (
-    user_id = auth.uid()
-    or public.is_group_admin(group_id)
+    user_id = (select auth.uid())
+    or private.is_group_admin(group_id)
   );
 
 -- courts
 create policy "courts_select_member_or_global"
   on public.courts for select
   to authenticated
-  using (group_id is null or public.is_group_member(group_id));
+  using (group_id is null or private.is_group_member(group_id));
 
 create policy "courts_insert_member"
   on public.courts for insert
   to authenticated
   with check (
-    created_by = auth.uid()
-    and (group_id is null or public.is_group_member(group_id))
+    created_by = (select auth.uid())
+    and (group_id is null or private.is_group_member(group_id))
   );
 
 create policy "courts_update_creator_or_admin"
   on public.courts for update
   to authenticated
   using (
-    created_by = auth.uid()
-    or (group_id is not null and public.is_group_admin(group_id))
+    created_by = (select auth.uid())
+    or (group_id is not null and private.is_group_admin(group_id))
   )
   with check (
-    created_by = auth.uid()
-    or (group_id is not null and public.is_group_admin(group_id))
+    created_by = (select auth.uid())
+    or (group_id is not null and private.is_group_admin(group_id))
   );
 
 create policy "courts_delete_creator_or_admin"
   on public.courts for delete
   to authenticated
   using (
-    created_by = auth.uid()
-    or (group_id is not null and public.is_group_admin(group_id))
+    created_by = (select auth.uid())
+    or (group_id is not null and private.is_group_admin(group_id))
   );
 
 -- events
@@ -408,8 +473,8 @@ create policy "events_select_accessible"
   on public.events for select
   to authenticated
   using (
-    created_by = auth.uid()
-    or (group_id is not null and public.is_group_member(group_id))
+    created_by = (select auth.uid())
+    or (group_id is not null and private.is_group_member(group_id))
     or (visibility = 'public' and starts_at > now())
   );
 
@@ -417,67 +482,67 @@ create policy "events_insert_member"
   on public.events for insert
   to authenticated
   with check (
-    created_by = auth.uid()
-    and (group_id is null or public.is_group_member(group_id))
+    created_by = (select auth.uid())
+    and (group_id is null or private.is_group_member(group_id))
   );
 
 create policy "events_update_creator"
   on public.events for update
   to authenticated
-  using (created_by = auth.uid())
-  with check (created_by = auth.uid());
+  using (created_by = (select auth.uid()))
+  with check (created_by = (select auth.uid()));
 
 create policy "events_delete_creator"
   on public.events for delete
   to authenticated
-  using (created_by = auth.uid());
+  using (created_by = (select auth.uid()));
 
 -- event_rsvps
 create policy "event_rsvps_select_accessible"
   on public.event_rsvps for select
   to authenticated
-  using (public.can_access_event(event_id));
+  using (private.can_access_event(event_id));
 
 create policy "event_rsvps_insert_own"
   on public.event_rsvps for insert
   to authenticated
   with check (
-    user_id = auth.uid()
-    and public.can_access_event(event_id)
+    user_id = (select auth.uid())
+    and private.can_access_event(event_id)
   );
 
 create policy "event_rsvps_update_own"
   on public.event_rsvps for update
   to authenticated
-  using (user_id = auth.uid())
+  using (user_id = (select auth.uid()))
   with check (
-    user_id = auth.uid()
-    and public.can_access_event(event_id)
+    user_id = (select auth.uid())
+    and private.can_access_event(event_id)
   );
 
 create policy "event_rsvps_delete_own"
   on public.event_rsvps for delete
   to authenticated
-  using (user_id = auth.uid());
+  using (user_id = (select auth.uid()));
 
 -- event_comments
 create policy "event_comments_select_accessible"
   on public.event_comments for select
   to authenticated
-  using (public.can_access_event(event_id));
+  using (private.can_access_event(event_id));
 
 create policy "event_comments_insert_member"
   on public.event_comments for insert
   to authenticated
   with check (
-    user_id = auth.uid()
+    user_id = (select auth.uid())
     and exists (
       select 1
       from public.events e
       where e.id = event_id
         and (
-          e.created_by = auth.uid()
-          or (e.group_id is not null and public.is_group_member(e.group_id))
+          e.created_by = (select auth.uid())
+          or (e.group_id is not null and private.is_group_member(e.group_id))
         )
     )
   );
@@ -485,39 +550,38 @@ create policy "event_comments_insert_member"
 create policy "event_comments_update_own"
   on public.event_comments for update
   to authenticated
-  using (user_id = auth.uid())
-  with check (user_id = auth.uid());
+  using (user_id = (select auth.uid()))
+  with check (user_id = (select auth.uid()));
 
 create policy "event_comments_delete_own"
   on public.event_comments for delete
   to authenticated
-  using (user_id = auth.uid());
+  using (user_id = (select auth.uid()));
 
 -- group_announcements
 create policy "group_announcements_select_member"
   on public.group_announcements for select
   to authenticated
-  using (public.is_group_member(group_id));
+  using (private.is_group_member(group_id));
 
 create policy "group_announcements_insert_admin"
   on public.group_announcements for insert
   to authenticated
   with check (
-    author_id = auth.uid()
-    and public.is_group_admin(group_id)
+    author_id = (select auth.uid())
+    and private.is_group_admin(group_id)
   );
 
 create policy "group_announcements_update_admin"
   on public.group_announcements for update
   to authenticated
-  using (public.is_group_admin(group_id))
+  using (private.is_group_admin(group_id))
   with check (
-    author_id = auth.uid()
-    and public.is_group_admin(group_id)
+    author_id = (select auth.uid())
+    and private.is_group_admin(group_id)
   );
 
 create policy "group_announcements_delete_admin"
   on public.group_announcements for delete
   to authenticated
-  using (public.is_group_admin(group_id));
-
+  using (private.is_group_admin(group_id));
