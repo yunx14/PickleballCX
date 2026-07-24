@@ -10,9 +10,13 @@ import {
   View,
 } from 'react-native';
 
+import { Chip } from '@/components/ui/Chip';
+import { EmptyState } from '@/components/ui/EmptyState';
 import { SessionCard } from '@/components/ui/SessionCard';
 import { PrimaryButton } from '@/components/ui/Screen';
+import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import { brand } from '@/constants/brand';
+import { spacing } from '@/constants/theme';
 import { useUpcomingEvents } from '@/hooks/useEvents';
 import { useUserLocation } from '@/hooks/useUserLocation';
 import {
@@ -78,32 +82,17 @@ export default function SessionsScreen() {
   return (
     <View style={styles.listContainer}>
       <View style={styles.discoveryHeader}>
-        <Text style={styles.discoveryTitle}>Near you</Text>
-        <Text style={styles.discoveryBody}>{locationMessage}</Text>
+        <ScreenHeader title="Sessions" subtitle={locationMessage} />
         <View style={styles.radiusRow}>
-          {DISCOVERY_RADIUS_OPTIONS_MI.map((option) => {
-            const selected = radiusMi === option;
-            return (
-              <Pressable
-                key={option}
-                disabled={!location}
-                onPress={() => setRadiusMi(option)}
-                style={[
-                  styles.radiusChip,
-                  selected && styles.radiusChipSelected,
-                  !location && styles.radiusChipDisabled,
-                ]}>
-                <Text
-                  style={[
-                    styles.radiusChipText,
-                    selected && styles.radiusChipTextSelected,
-                    !location && styles.radiusChipTextDisabled,
-                  ]}>
-                  {option} mi
-                </Text>
-              </Pressable>
-            );
-          })}
+          {DISCOVERY_RADIUS_OPTIONS_MI.map((option) => (
+            <Chip
+              key={option}
+              label={`${option} mi`}
+              selected={radiusMi === option}
+              disabled={!location}
+              onPress={() => setRadiusMi(option)}
+            />
+          ))}
         </View>
         {locationStatus === 'denied' ? (
           <Pressable onPress={() => void refetchLocation()} style={styles.secondaryLink}>
@@ -114,25 +103,21 @@ export default function SessionsScreen() {
 
       {error ? (
         <View style={styles.container}>
-          <View style={styles.emptyCard}>
-            <Text style={styles.emptyTitle}>Could not load sessions</Text>
-            <Text style={styles.emptyBody}>{error.message}</Text>
-          </View>
+          <EmptyState title="Could not load sessions" body={error.message} />
         </View>
       ) : !events?.length ? (
         <View style={styles.container}>
-          <View style={styles.emptyCard}>
-            <Text style={styles.emptyTitle}>No sessions yet</Text>
-            <Text style={styles.emptyBody}>
-              Schedule a public open session or post to one of your groups. Try a wider radius if
-              you are filtering by location.
-            </Text>
-          </View>
-          {isAppAdmin ? (
-            <Pressable onPress={() => router.push(courtsRoute)} style={styles.secondaryLink}>
-              <Text style={styles.secondaryLinkText}>Manage courts</Text>
-            </Pressable>
-          ) : null}
+          <EmptyState
+            title="No sessions yet"
+            body="Schedule a public open session or post to one of your groups. Try a wider radius if you are filtering by location."
+            action={
+              isAppAdmin ? (
+                <Pressable onPress={() => router.push(courtsRoute)} style={styles.secondaryLink}>
+                  <Text style={styles.secondaryLinkText}>Manage courts</Text>
+                </Pressable>
+              ) : undefined
+            }
+          />
         </View>
       ) : (
         <FlatList
@@ -176,89 +161,34 @@ const styles = StyleSheet.create({
     backgroundColor: brand.sand,
   },
   discoveryHeader: {
-    paddingHorizontal: 20,
-    paddingTop: 16,
-    paddingBottom: 8,
-    gap: 8,
-  },
-  discoveryTitle: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: brand.text,
-  },
-  discoveryBody: {
-    fontSize: 14,
-    lineHeight: 20,
-    color: brand.muted,
+    paddingHorizontal: spacing.xl,
+    paddingTop: spacing.lg,
+    paddingBottom: spacing.sm,
+    gap: spacing.sm,
   },
   radiusRow: {
     flexDirection: 'row',
-    gap: 8,
+    gap: spacing.sm,
     flexWrap: 'wrap',
-  },
-  radiusChip: {
-    borderWidth: 1,
-    borderColor: '#DEE2E6',
-    backgroundColor: brand.white,
-    borderRadius: 999,
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-  },
-  radiusChipSelected: {
-    borderColor: brand.green700,
-    backgroundColor: brand.green100,
-  },
-  radiusChipDisabled: {
-    opacity: 0.5,
-  },
-  radiusChipText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: brand.text,
-  },
-  radiusChipTextSelected: {
-    color: brand.green900,
-  },
-  radiusChipTextDisabled: {
-    color: brand.muted,
   },
   container: {
     flex: 1,
-    paddingHorizontal: 20,
-    paddingTop: 8,
+    paddingHorizontal: spacing.xl,
+    paddingTop: spacing.sm,
   },
   listContent: {
-    paddingHorizontal: 20,
-    paddingTop: 8,
-    paddingBottom: 16,
+    paddingHorizontal: spacing.xl,
+    paddingTop: spacing.sm,
+    paddingBottom: spacing.lg,
   },
   footer: {
-    padding: 20,
-    paddingTop: 12,
+    padding: spacing.xl,
+    paddingTop: spacing.md,
     borderTopWidth: 1,
     borderTopColor: '#E9ECEF',
-    backgroundColor: brand.sand,
-  },
-  emptyCard: {
     backgroundColor: brand.white,
-    borderRadius: 16,
-    padding: 20,
-    borderWidth: 1,
-    borderColor: '#E9ECEF',
-  },
-  emptyTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: brand.text,
-    marginBottom: 8,
-  },
-  emptyBody: {
-    fontSize: 15,
-    lineHeight: 22,
-    color: brand.muted,
   },
   secondaryLink: {
-    marginTop: 12,
     alignItems: 'center',
   },
   secondaryLinkText: {

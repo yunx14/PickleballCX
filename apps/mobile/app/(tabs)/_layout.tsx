@@ -2,6 +2,7 @@ import { SymbolView } from 'expo-symbols';
 import { Tabs } from 'expo-router';
 
 import { brand } from '@/constants/brand';
+import { spacing } from '@/constants/theme';
 
 export default function TabLayout() {
   return (
@@ -10,8 +11,21 @@ export default function TabLayout() {
         tabBarActiveTintColor: brand.green700,
         tabBarInactiveTintColor: brand.muted,
         headerStyle: { backgroundColor: brand.sand },
+        headerShadowVisible: false,
         headerTintColor: brand.green900,
-        tabBarStyle: { backgroundColor: brand.white },
+        headerTitleStyle: { fontWeight: '700', fontSize: 17 },
+        tabBarStyle: {
+          backgroundColor: brand.white,
+          borderTopColor: '#E9ECEF',
+          paddingTop: spacing.xs,
+          height: 60,
+        },
+        tabBarLabelStyle: {
+          fontSize: 12,
+          fontWeight: '600',
+          marginBottom: spacing.xs,
+        },
+        sceneStyle: { backgroundColor: brand.sand },
       }}>
       <Tabs.Screen
         name="index"

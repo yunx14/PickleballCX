@@ -6,6 +6,8 @@ import { Controller, useForm } from 'react-hook-form';
 import { ScrollView } from 'react-native';
 
 import {
+  AuthBrandMark,
+  AuthHeading,
   ErrorText,
   FieldLabel,
   LinkText,
@@ -13,7 +15,6 @@ import {
   ScreenContainer,
   Subtitle,
   TextField,
-  Title,
 } from '@/components/ui/Screen';
 import { supabase } from '@/lib/supabase';
 
@@ -60,7 +61,8 @@ export default function SignUpScreen() {
   return (
     <ScrollView contentContainerStyle={{ flexGrow: 1 }} keyboardShouldPersistTaps="handled">
       <ScreenContainer>
-        <Title>Create account</Title>
+        <AuthBrandMark />
+        <AuthHeading>Create account</AuthHeading>
         <Subtitle>Join your pickleball group with structured sessions and RSVPs.</Subtitle>
         <ErrorText message={formError} />
 

@@ -11,7 +11,8 @@
       "supportsTablet": true,
       "bundleIdentifier": "com.pickleballcx.app",
       "infoPlist": {
-        "NSLocationWhenInUseUsageDescription": "PickleballCX uses your location to show nearby open sessions."
+        "NSLocationWhenInUseUsageDescription": "PickleballCX uses your location to show nearby open sessions.",
+        "ITSAppUsesNonExemptEncryption": false
       }
     },
     "android": {
@@ -23,7 +24,12 @@
       },
       "package": "com.pickleballcx.app",
       "predictiveBackGestureEnabled": false,
-      "permissions": ["ACCESS_COARSE_LOCATION", "ACCESS_FINE_LOCATION"]
+      "permissions": [
+        "ACCESS_COARSE_LOCATION",
+        "ACCESS_FINE_LOCATION",
+        "android.permission.ACCESS_COARSE_LOCATION",
+        "android.permission.ACCESS_FINE_LOCATION"
+      ]
     },
     "web": {
       "bundler": "metro",
@@ -61,7 +67,12 @@
     },
     "extra": {
       "supabaseUrl": "${EXPO_PUBLIC_SUPABASE_URL}",
-      "supabasePublishableKey": "${EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY}"
-    }
+      "supabasePublishableKey": "${EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY}",
+      "router": {},
+      "eas": {
+        "projectId": "d44137ea-48b4-474d-bac0-9d6df4221232"
+      }
+    },
+    "owner": "yunx14"
   }
 }

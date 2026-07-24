@@ -1,9 +1,28 @@
 import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 
 import { brand } from '@/constants/brand';
+import { border, cardShadow, radius, spacing, typography } from '@/constants/theme';
 
 export function ScreenContainer({ children }: { children: React.ReactNode }) {
-  return <View style={styles.container}>{children}</View>;
+  return (
+    <View style={styles.screen}>
+      <View style={styles.heroBand} />
+      <View style={styles.container}>{children}</View>
+    </View>
+  );
+}
+
+export function AuthBrandMark() {
+  return (
+    <View style={styles.brandMark}>
+      <Text style={styles.brandEmoji}>🏓</Text>
+      <Text style={styles.brandName}>PickleballCX</Text>
+    </View>
+  );
+}
+
+export function AuthHeading({ children }: { children: React.ReactNode }) {
+  return <Text style={styles.authHeading}>{children}</Text>;
 }
 
 export function Title({ children }: { children: React.ReactNode }) {
@@ -85,46 +104,75 @@ export function TextField({
 }
 
 const styles = StyleSheet.create({
-  container: {
+  screen: {
     flex: 1,
     backgroundColor: brand.sand,
-    paddingHorizontal: 24,
-    paddingTop: 72,
+  },
+  heroBand: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    height: 180,
+    backgroundColor: brand.green900,
+    borderBottomLeftRadius: radius.xl,
+    borderBottomRightRadius: radius.xl,
+  },
+  container: {
+    flex: 1,
+    paddingHorizontal: spacing.xxl,
+    paddingTop: spacing.xxxl,
+  },
+  brandMark: {
+    marginBottom: spacing.xl,
+    gap: spacing.sm,
+  },
+  brandEmoji: {
+    fontSize: 36,
+  },
+  brandName: {
+    fontSize: 32,
+    fontWeight: '800',
+    color: brand.white,
+    letterSpacing: -0.5,
+  },
+  authHeading: {
+    fontSize: 24,
+    fontWeight: '700',
+    color: brand.white,
+    marginBottom: spacing.sm,
   },
   title: {
-    fontSize: 32,
-    fontWeight: '700',
-    color: brand.green900,
-    marginBottom: 8,
+    ...typography.title,
+    color: brand.white,
+    marginBottom: spacing.sm,
   },
   subtitle: {
-    fontSize: 16,
-    color: brand.muted,
-    marginBottom: 32,
-    lineHeight: 22,
+    ...typography.subtitle,
+    color: brand.green100,
+    marginBottom: spacing.xxxl,
   },
   label: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: brand.text,
-    marginBottom: 8,
+    ...typography.label,
+    marginBottom: spacing.sm,
   },
   input: {
     backgroundColor: brand.white,
-    borderWidth: 1,
-    borderColor: '#DEE2E6',
-    borderRadius: 12,
-    paddingHorizontal: 16,
+    borderWidth: border.width,
+    borderColor: border.colorStrong,
+    borderRadius: radius.md,
+    paddingHorizontal: spacing.lg,
     paddingVertical: 14,
     fontSize: 16,
     color: brand.text,
-    marginBottom: 16,
+    marginBottom: spacing.lg,
   },
   primaryButton: {
     backgroundColor: brand.green700,
-    borderRadius: 12,
+    borderRadius: radius.md,
     overflow: 'hidden',
-    marginTop: 8,
+    marginTop: spacing.sm,
+    ...cardShadow(),
   },
   primaryButtonPressed: {
     opacity: 0.85,
@@ -137,17 +185,18 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     fontSize: 16,
     fontWeight: '700',
-    paddingVertical: 16,
+    paddingVertical: spacing.lg,
   },
   link: {
     color: brand.green700,
     fontSize: 15,
     fontWeight: '600',
     textAlign: 'center',
-    marginTop: 20,
+    marginTop: spacing.xl,
   },
   error: {
     color: brand.danger,
-    marginBottom: 12,
+    marginBottom: spacing.md,
+    fontWeight: '600',
   },
 });

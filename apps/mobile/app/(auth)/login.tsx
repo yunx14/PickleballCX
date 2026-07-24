@@ -6,6 +6,7 @@ import { Controller, useForm } from 'react-hook-form';
 import { ScrollView } from 'react-native';
 
 import {
+  AuthBrandMark,
   ErrorText,
   FieldLabel,
   LinkText,
@@ -13,7 +14,6 @@ import {
   ScreenContainer,
   Subtitle,
   TextField,
-  Title,
 } from '@/components/ui/Screen';
 import { supabase } from '@/lib/supabase';
 
@@ -39,7 +39,7 @@ export default function LoginScreen() {
   return (
     <ScrollView contentContainerStyle={{ flexGrow: 1 }}>
       <ScreenContainer>
-        <Title>PickleballCX</Title>
+        <AuthBrandMark />
         <Subtitle>Sign in to coordinate sessions with your group.</Subtitle>
         <ErrorText message={formError} />
 

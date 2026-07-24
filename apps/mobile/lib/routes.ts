@@ -44,5 +44,7 @@ export function courtRoute(courtId: string): Href {
 
 export const sessionsTabRoute = '/(tabs)/sessions' as Href;
 
+export const privacyPolicyRoute = '/legal/privacy' as Href;
+
 export const createGroupRoute = '/(tabs)/groups/create' as Href;
 export const joinGroupRoute = '/(tabs)/groups/join' as Href;

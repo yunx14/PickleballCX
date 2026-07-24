@@ -1,7 +1,10 @@
 import { router } from 'expo-router';
-import { Pressable, ScrollView, StyleSheet, Text } from 'react-native';
+import { ScrollView, StyleSheet, Text, View } from 'react-native';
 
+import { Card } from '@/components/ui/Card';
+import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import { brand } from '@/constants/brand';
+import { spacing } from '@/constants/theme';
 import { useUpcomingEvents } from '@/hooks/useEvents';
 import { useGroups } from '@/hooks/useGroups';
 import { sessionsTabRoute } from '@/lib/routes';
@@ -17,33 +20,42 @@ export default function HomeScreen() {
 
   return (
     <ScrollView contentContainerStyle={styles.scrollContent}>
-      <Text style={styles.greeting}>Hey, {profile?.display_name ?? 'player'} 👋</Text>
-      <Text style={styles.title}>Welcome back</Text>
-      <Text style={styles.subtitle}>
-        See what's coming up, manage your groups, and schedule your next game.
-      </Text>
+      <ScreenHeader
+        eyebrow={`Hey, ${profile?.display_name ?? 'player'}`}
+        title="Welcome back"
+        subtitle="See what's coming up, manage your groups, and schedule your next game."
+      />
 
-      <Pressable
-        onPress={() => router.push(sessionsTabRoute)}
-        style={({ pressed }) => [styles.card, pressed && styles.cardPressed]}>
+      <View style={styles.statsRow}>
+        <View style={styles.statPill}>
+          <Text style={styles.statValue}>{upcomingCount}</Text>
+          <Text style={styles.statLabel}>Sessions</Text>
+        </View>
+        <View style={styles.statPill}>
+          <Text style={styles.statValue}>{groupCount}</Text>
+          <Text style={styles.statLabel}>Groups</Text>
+        </View>
+      </View>
+
+      <Card accent onPress={() => router.push(sessionsTabRoute)}>
         <Text style={styles.cardTitle}>Sessions</Text>
         <Text style={styles.cardBody}>
           {upcomingCount === 0
-            ? 'No upcoming sessions — tap to view your feed'
+            ? 'No upcoming sessions — tap to browse your feed'
             : `${upcomingCount} upcoming session${upcomingCount === 1 ? '' : 's'}`}
         </Text>
-      </Pressable>
+        <Text style={styles.cardLink}>View sessions →</Text>
+      </Card>
 
-      <Pressable
-        onPress={() => router.push('/(tabs)/groups')}
-        style={({ pressed }) => [styles.card, pressed && styles.cardPressed]}>
+      <Card onPress={() => router.push('/(tabs)/groups')}>
         <Text style={styles.cardTitle}>Groups</Text>
         <Text style={styles.cardBody}>
           {groupCount === 0
             ? 'Create or join a group to get started'
             : `${groupCount} group${groupCount === 1 ? '' : 's'}`}
         </Text>
-      </Pressable>
+        <Text style={styles.cardLink}>Manage groups →</Text>
+      </Card>
     </ScrollView>
   );
 }
@@ -52,47 +64,50 @@ const styles = StyleSheet.create({
   scrollContent: {
     flexGrow: 1,
     backgroundColor: brand.sand,
-    paddingHorizontal: 20,
-    paddingTop: 20,
-    paddingBottom: 40,
-    gap: 12,
+    paddingHorizontal: spacing.xl,
+    paddingTop: spacing.xl,
+    paddingBottom: spacing.xxxl,
+    gap: spacing.md,
   },
-  greeting: {
-    fontSize: 16,
-    color: brand.muted,
-    marginBottom: 4,
+  statsRow: {
+    flexDirection: 'row',
+    gap: spacing.md,
+    marginBottom: spacing.sm,
   },
-  title: {
-    fontSize: 28,
-    fontWeight: '700',
+  statPill: {
+    flex: 1,
+    backgroundColor: brand.green100,
+    borderRadius: 14,
+    paddingVertical: spacing.md,
+    paddingHorizontal: spacing.lg,
+    alignItems: 'center',
+  },
+  statValue: {
+    fontSize: 24,
+    fontWeight: '800',
     color: brand.green900,
-    marginBottom: 8,
   },
-  subtitle: {
-    fontSize: 15,
-    lineHeight: 22,
-    color: brand.muted,
-    marginBottom: 12,
-  },
-  card: {
-    backgroundColor: brand.white,
-    borderRadius: 16,
-    padding: 20,
-    borderWidth: 1,
-    borderColor: '#E9ECEF',
-  },
-  cardPressed: {
-    opacity: 0.85,
+  statLabel: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: brand.green700,
+    marginTop: 2,
   },
   cardTitle: {
     fontSize: 18,
     fontWeight: '700',
     color: brand.text,
-    marginBottom: 4,
+    marginBottom: spacing.xs,
   },
   cardBody: {
     fontSize: 15,
     lineHeight: 22,
     color: brand.muted,
+  },
+  cardLink: {
+    marginTop: spacing.md,
+    fontSize: 14,
+    fontWeight: '700',
+    color: brand.green700,
   },
 });
