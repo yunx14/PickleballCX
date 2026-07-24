@@ -26,31 +26,37 @@ const styles = StyleSheet.create({
     borderRadius: 999,
     paddingHorizontal: 10,
     paddingVertical: 4,
+    borderWidth: 1,
   },
   text: {
     fontSize: 12,
-    fontWeight: '700',
+    fontWeight: '800',
+    letterSpacing: 0.3,
   },
   beginner: {
-    backgroundColor: brand.green100,
+    backgroundColor: brand.accentSurface,
+    borderColor: brand.accent,
   },
   beginnerText: {
-    color: brand.green900,
+    color: brand.accent,
   },
   intermediate: {
-    backgroundColor: '#FFF3CD',
+    backgroundColor: '#2A2200',
+    borderColor: brand.warning,
   },
   intermediateText: {
-    color: '#856404',
+    color: brand.warning,
   },
   advanced: {
-    backgroundColor: '#F8D7DA',
+    backgroundColor: '#2A1010',
+    borderColor: brand.danger,
   },
   advancedText: {
-    color: '#721C24',
+    color: brand.danger,
   },
   unknown: {
-    backgroundColor: '#E9ECEF',
+    backgroundColor: brand.surfaceElevated,
+    borderColor: brand.border,
   },
   unknownText: {
     color: brand.muted,

@@ -15,7 +15,7 @@ import {
   ErrorText,
   FieldLabel,
   PrimaryButton,
-  ScreenContainer,
+  FormScreenContainer,
   Subtitle,
   TextField,
   Title,
@@ -69,17 +69,17 @@ export default function NewCourtScreen() {
 
   if (!isAppAdmin) {
     return (
-      <ScreenContainer>
+      <FormScreenContainer>
         <Title>Admin only</Title>
         <Subtitle>Only app admins can add courts to the global catalog.</Subtitle>
         <PrimaryButton label="Go back" onPress={() => router.back()} />
-      </ScreenContainer>
+      </FormScreenContainer>
     );
   }
 
   return (
     <ScrollView contentContainerStyle={{ flexGrow: 1 }} keyboardShouldPersistTaps="handled">
-      <ScreenContainer>
+      <FormScreenContainer>
         <Title>Add a court</Title>
         <Subtitle>
           Add a venue to the global catalog. Map coordinates will be added when map integration ships.
@@ -177,7 +177,7 @@ export default function NewCourtScreen() {
           onPress={onSubmit}
           disabled={isSubmitting || createCourt.isPending}
         />
-      </ScreenContainer>
+      </FormScreenContainer>
     </ScrollView>
   );
 }
@@ -210,9 +210,9 @@ function CourtTypePicker({
 
 const styles = StyleSheet.create({
   input: {
-    backgroundColor: brand.white,
+    backgroundColor: brand.surface,
     borderWidth: 1,
-    borderColor: '#DEE2E6',
+    borderColor: brand.borderStrong,
     borderRadius: 12,
     paddingHorizontal: 16,
     paddingVertical: 14,
@@ -225,25 +225,25 @@ const styles = StyleSheet.create({
     paddingTop: 14,
   },
   option: {
-    backgroundColor: brand.white,
+    backgroundColor: brand.surface,
     borderWidth: 1,
-    borderColor: '#DEE2E6',
+    borderColor: brand.borderStrong,
     borderRadius: 12,
     paddingVertical: 14,
     paddingHorizontal: 16,
     marginBottom: 10,
   },
   optionSelected: {
-    borderColor: brand.green700,
-    backgroundColor: brand.green100,
+    borderColor: brand.accent,
+    backgroundColor: brand.accentSurface,
   },
   optionText: {
     fontSize: 16,
-    color: brand.text,
+    color: brand.muted,
     fontWeight: '500',
   },
   optionTextSelected: {
-    color: brand.green900,
-    fontWeight: '700',
+    color: brand.accent,
+    fontWeight: '800',
   },
 });

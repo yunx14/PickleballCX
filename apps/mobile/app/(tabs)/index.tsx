@@ -63,7 +63,7 @@ export default function HomeScreen() {
 const styles = StyleSheet.create({
   scrollContent: {
     flexGrow: 1,
-    backgroundColor: brand.sand,
+    backgroundColor: brand.background,
     paddingHorizontal: spacing.xl,
     paddingTop: spacing.xl,
     paddingBottom: spacing.xxxl,
@@ -76,22 +76,26 @@ const styles = StyleSheet.create({
   },
   statPill: {
     flex: 1,
-    backgroundColor: brand.green100,
+    backgroundColor: brand.surface,
     borderRadius: 14,
+    borderWidth: 1,
+    borderColor: brand.border,
     paddingVertical: spacing.md,
     paddingHorizontal: spacing.lg,
     alignItems: 'center',
   },
   statValue: {
-    fontSize: 24,
+    fontSize: 28,
     fontWeight: '800',
-    color: brand.green900,
+    color: brand.accent,
   },
   statLabel: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: brand.green700,
+    fontSize: 11,
+    fontWeight: '700',
+    color: brand.muted,
     marginTop: 2,
+    letterSpacing: 0.8,
+    textTransform: 'uppercase',
   },
   cardTitle: {
     fontSize: 18,
@@ -108,6 +112,6 @@ const styles = StyleSheet.create({
     marginTop: spacing.md,
     fontSize: 14,
     fontWeight: '700',
-    color: brand.green700,
+    color: brand.accent,
   },
 });

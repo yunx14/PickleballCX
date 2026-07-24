@@ -1,16 +1,7 @@
 import { Stack } from 'expo-router';
 
-import { brand } from '@/constants/brand';
+import { stackScreenOptions } from '@/constants/navigation';
 
 export default function SessionsLayout() {
-  return (
-    <Stack
-      screenOptions={{
-        headerStyle: { backgroundColor: brand.sand },
-        headerTintColor: brand.green900,
-        headerTitleStyle: { fontWeight: '700' },
-        contentStyle: { backgroundColor: brand.sand },
-      }}
-    />
-  );
+  return <Stack screenOptions={stackScreenOptions} />;
 }

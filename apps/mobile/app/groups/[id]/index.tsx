@@ -1,15 +1,16 @@
 import { router, useLocalSearchParams } from 'expo-router';
 import {
   ActivityIndicator,
-  Pressable,
   ScrollView,
   StyleSheet,
   Text,
   View,
 } from 'react-native';
 
+import { Card } from '@/components/ui/Card';
 import { PrimaryButton } from '@/components/ui/Screen';
 import { brand } from '@/constants/brand';
+import { spacing } from '@/constants/theme';
 import { useGroupEvents } from '@/hooks/useEvents';
 import { useGroupAnnouncements } from '@/hooks/useGroupAnnouncements';
 import { useGroupMembers } from '@/hooks/useGroupMembers';
@@ -38,7 +39,7 @@ export default function GroupHomeScreen() {
   if (isLoading) {
     return (
       <View style={styles.centered}>
-        <ActivityIndicator size="large" color={brand.green700} />
+        <ActivityIndicator size="large" color={brand.accent} />
       </View>
     );
   }
@@ -55,16 +56,17 @@ export default function GroupHomeScreen() {
 
   return (
     <ScrollView contentContainerStyle={styles.scrollContent}>
-      <View style={styles.headerCard}>
+      <Card accent>
         <Text style={styles.groupName}>{group.name}</Text>
-        <Text style={styles.roleLabel}>{membership?.role === 'admin' ? 'You are an admin' : 'Member'}</Text>
-
+        <Text style={styles.roleLabel}>
+          {membership?.role === 'admin' ? 'You are an admin' : 'Member'}
+        </Text>
         <View style={styles.inviteBlock}>
           <Text style={styles.inviteLabel}>Invite code</Text>
           <Text style={styles.inviteCode}>{group.invite_code}</Text>
           <Text style={styles.inviteHint}>Share this code so others can join your group.</Text>
         </View>
-      </View>
+      </Card>
 
       <View style={styles.statsRow}>
         <View style={styles.statCard}>
@@ -86,7 +88,7 @@ export default function GroupHomeScreen() {
         <View style={styles.announcementsBlock}>
           <Text style={styles.announcementsHeading}>Announcements</Text>
           {pinnedAnnouncements.map((item) => (
-            <View key={item.id} style={styles.announcementCard}>
+            <Card key={item.id}>
               <Text style={styles.announcementTitle}>{item.title}</Text>
               <Text style={styles.announcementMeta}>
                 {item.author_name} · {formatRelativeTime(item.created_at)}
@@ -94,35 +96,32 @@ export default function GroupHomeScreen() {
               <Text style={styles.announcementBody} numberOfLines={3}>
                 {item.body}
               </Text>
-            </View>
+            </Card>
           ))}
         </View>
       ) : null}
 
-      <Pressable
-        onPress={() => router.push(groupAnnouncementsRoute(groupId))}
-        style={({ pressed }) => [styles.linkCard, pressed && styles.linkCardPressed]}>
+      <Card onPress={() => router.push(groupAnnouncementsRoute(groupId))}>
         <Text style={styles.linkTitle}>Announcements</Text>
         <Text style={styles.linkBody}>
           {isAdmin
             ? 'Post updates and pin important messages for your group'
             : 'Group news and schedule updates from admins'}
         </Text>
-      </Pressable>
+        <Text style={styles.linkArrow}>View →</Text>
+      </Card>
 
-      <Pressable
-        onPress={() => router.push(groupSessionsRoute(groupId))}
-        style={({ pressed }) => [styles.linkCard, pressed && styles.linkCardPressed]}>
+      <Card onPress={() => router.push(groupSessionsRoute(groupId))}>
         <Text style={styles.linkTitle}>Sessions</Text>
         <Text style={styles.linkBody}>Upcoming pickleball sessions for this group</Text>
-      </Pressable>
+        <Text style={styles.linkArrow}>View →</Text>
+      </Card>
 
-      <Pressable
-        onPress={() => router.push(groupMembersRoute(groupId))}
-        style={({ pressed }) => [styles.linkCard, pressed && styles.linkCardPressed]}>
+      <Card onPress={() => router.push(groupMembersRoute(groupId))}>
         <Text style={styles.linkTitle}>Members</Text>
         <Text style={styles.linkBody}>See who is in this group and their skill levels</Text>
-      </Pressable>
+        <Text style={styles.linkArrow}>View →</Text>
+      </Card>
     </ScrollView>
   );
 }
@@ -132,125 +131,105 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: brand.sand,
+    backgroundColor: brand.background,
   },
   container: {
     flex: 1,
-    backgroundColor: brand.sand,
-    padding: 20,
+    backgroundColor: brand.background,
+    padding: spacing.xl,
   },
   scrollContent: {
-    padding: 20,
-    paddingBottom: 40,
-    gap: 12,
-  },
-  headerCard: {
-    backgroundColor: brand.white,
-    borderRadius: 16,
-    padding: 20,
-    borderWidth: 1,
-    borderColor: '#E9ECEF',
-    marginBottom: 16,
+    padding: spacing.xl,
+    paddingBottom: spacing.xxxl,
+    gap: spacing.md,
   },
   groupName: {
     fontSize: 28,
-    fontWeight: '700',
-    color: brand.green900,
+    fontWeight: '800',
+    color: brand.text,
     marginBottom: 4,
   },
   roleLabel: {
     fontSize: 14,
     color: brand.muted,
-    marginBottom: 20,
+    marginBottom: spacing.lg,
   },
   inviteBlock: {
-    backgroundColor: brand.green100,
+    backgroundColor: brand.accentSurface,
     borderRadius: 12,
-    padding: 16,
+    borderWidth: 1,
+    borderColor: brand.accent,
+    padding: spacing.lg,
   },
   inviteLabel: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: brand.green900,
+    fontSize: 11,
+    fontWeight: '700',
+    color: brand.accent,
+    letterSpacing: 0.8,
+    textTransform: 'uppercase',
     marginBottom: 4,
   },
   inviteCode: {
     fontSize: 24,
     fontWeight: '800',
     letterSpacing: 2,
-    color: brand.green900,
-    marginBottom: 8,
+    color: brand.accent,
+    marginBottom: spacing.sm,
   },
   inviteHint: {
     fontSize: 14,
     lineHeight: 20,
-    color: brand.green700,
+    color: brand.muted,
   },
   statsRow: {
     flexDirection: 'row',
-    gap: 12,
-    marginBottom: 16,
+    gap: spacing.md,
   },
   statCard: {
     flex: 1,
-    backgroundColor: brand.white,
+    backgroundColor: brand.surface,
     borderRadius: 12,
-    padding: 16,
+    padding: spacing.lg,
     borderWidth: 1,
-    borderColor: '#E9ECEF',
+    borderColor: brand.border,
     alignItems: 'center',
   },
   statValue: {
     fontSize: 24,
-    fontWeight: '700',
-    color: brand.text,
+    fontWeight: '800',
+    color: brand.accent,
   },
   statLabel: {
-    fontSize: 13,
+    fontSize: 11,
+    fontWeight: '700',
     color: brand.muted,
     marginTop: 4,
+    letterSpacing: 0.6,
+    textTransform: 'uppercase',
   },
   announcementsBlock: {
-    gap: 10,
-    marginBottom: 4,
+    gap: spacing.sm,
   },
   announcementsHeading: {
     fontSize: 16,
     fontWeight: '700',
     color: brand.text,
   },
-  announcementCard: {
-    backgroundColor: brand.white,
-    borderRadius: 12,
-    padding: 16,
-    borderWidth: 1,
-    borderColor: '#E9ECEF',
-    gap: 4,
-  },
   announcementTitle: {
     fontSize: 16,
     fontWeight: '700',
     color: brand.text,
+    marginBottom: 4,
   },
   announcementMeta: {
     fontSize: 12,
     color: brand.muted,
+    marginBottom: 4,
   },
   announcementBody: {
     fontSize: 14,
     lineHeight: 20,
     color: brand.text,
-  },
-  linkCard: {
-    backgroundColor: brand.white,
-    borderRadius: 16,
-    padding: 18,
-    borderWidth: 1,
-    borderColor: '#E9ECEF',
-    marginBottom: 12,
-  },
-  linkCardPressed: {
-    opacity: 0.85,
   },
   linkTitle: {
     fontSize: 18,
@@ -263,15 +242,21 @@ const styles = StyleSheet.create({
     lineHeight: 20,
     color: brand.muted,
   },
+  linkArrow: {
+    marginTop: spacing.md,
+    fontSize: 14,
+    fontWeight: '700',
+    color: brand.accent,
+  },
   errorTitle: {
     fontSize: 20,
     fontWeight: '700',
     color: brand.text,
-    marginBottom: 8,
+    marginBottom: spacing.sm,
   },
   errorBody: {
     fontSize: 15,
     color: brand.muted,
-    marginBottom: 20,
+    marginBottom: spacing.xl,
   },
 });

@@ -1,7 +1,7 @@
 import { Pressable, StyleSheet, Text, View, type StyleProp, type ViewStyle } from 'react-native';
 
 import { brand } from '@/constants/brand';
-import { border, cardShadow, radius, spacing } from '@/constants/theme';
+import { border, radius, spacing } from '@/constants/theme';
 
 export function Card({
   children,
@@ -32,19 +32,18 @@ export function Card({
 
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: brand.white,
+    backgroundColor: brand.surface,
     borderRadius: radius.lg,
     borderWidth: border.width,
     borderColor: border.color,
     overflow: 'hidden',
-    ...cardShadow(),
   },
   cardAccent: {
-    borderColor: brand.green100,
+    borderColor: brand.accent,
   },
   accentBar: {
-    height: 4,
-    backgroundColor: brand.green700,
+    height: 3,
+    backgroundColor: brand.accent,
   },
   cardInner: {
     padding: spacing.lg,

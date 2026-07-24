@@ -3,17 +3,18 @@ import { createGroupSchema, generateInviteCode, type CreateGroupInput } from '@p
 import { router } from 'expo-router';
 import { useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
-import { ScrollView } from 'react-native';
+import { ScrollView, StyleSheet } from 'react-native';
 
 import {
+  AuthHeading,
   ErrorText,
   FieldLabel,
   PrimaryButton,
   ScreenContainer,
   Subtitle,
   TextField,
-  Title,
 } from '@/components/ui/Screen';
+import { brand } from '@/constants/brand';
 import { useCreateGroup } from '@/hooks/useGroups';
 import { groupRoute } from '@/lib/routes';
 
@@ -44,9 +45,12 @@ export default function CreateGroupScreen() {
   });
 
   return (
-    <ScrollView contentContainerStyle={{ flexGrow: 1 }} keyboardShouldPersistTaps="handled">
+    <ScrollView
+      contentContainerStyle={styles.scroll}
+      keyboardShouldPersistTaps="handled"
+      style={styles.scrollView}>
       <ScreenContainer>
-        <Title>Create a group</Title>
+        <AuthHeading>Create a group</AuthHeading>
         <Subtitle>
           Start a private crew for your regular pickleball sessions. You will get a shareable invite
           code right away.
@@ -79,3 +83,12 @@ export default function CreateGroupScreen() {
     </ScrollView>
   );
 }
+
+const styles = StyleSheet.create({
+  scrollView: {
+    backgroundColor: brand.background,
+  },
+  scroll: {
+    flexGrow: 1,
+  },
+});

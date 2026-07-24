@@ -6,7 +6,7 @@ import { useForm } from 'react-hook-form';
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { SessionForm } from '@/components/sessions/SessionForm';
-import { PrimaryButton, ScreenContainer, Subtitle, Title } from '@/components/ui/Screen';
+import { PrimaryButton, FormScreenContainer, Subtitle, Title } from '@/components/ui/Screen';
 import { brand } from '@/constants/brand';
 import { useCourts } from '@/hooks/useCourts';
 import { useCreateEvent } from '@/hooks/useEvents';
@@ -79,14 +79,14 @@ export default function NewSessionScreen() {
   if (courtsLoading) {
     return (
       <View style={styles.centered}>
-        <ActivityIndicator size="large" color={brand.green700} />
+        <ActivityIndicator size="large" color={brand.accent} />
       </View>
     );
   }
 
   if (!courts?.length) {
     return (
-      <ScreenContainer>
+      <FormScreenContainer>
         <Title>Add a court first</Title>
         <Subtitle>
           Sessions need a court from the global catalog. Ask an app admin to add venues, or add one
@@ -94,13 +94,13 @@ export default function NewSessionScreen() {
         </Subtitle>
         <PrimaryButton label="Browse courts" onPress={() => router.push(courtsRoute)} />
         <PrimaryButton label="Go back" onPress={() => router.back()} />
-      </ScreenContainer>
+      </FormScreenContainer>
     );
   }
 
   return (
     <ScrollView contentContainerStyle={{ flexGrow: 1 }} keyboardShouldPersistTaps="handled">
-      <ScreenContainer>
+      <FormScreenContainer>
         <View style={styles.groupSection}>
           <Text style={styles.sectionTitle}>Visibility</Text>
           <Pressable
@@ -171,7 +171,7 @@ export default function NewSessionScreen() {
           isSubmitting={isSubmitting || createEvent.isPending}
           onSubmit={onSubmit}
         />
-      </ScreenContainer>
+      </FormScreenContainer>
     </ScrollView>
   );
 }
@@ -181,7 +181,7 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: brand.sand,
+    backgroundColor: brand.background,
   },
   groupSection: {
     marginBottom: 24,
@@ -194,33 +194,33 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   option: {
-    backgroundColor: brand.white,
+    backgroundColor: brand.surface,
     borderWidth: 1,
-    borderColor: '#DEE2E6',
+    borderColor: brand.borderStrong,
     borderRadius: 12,
     paddingVertical: 14,
     paddingHorizontal: 16,
   },
   groupOption: {
-    backgroundColor: brand.white,
+    backgroundColor: brand.surface,
     borderWidth: 1,
-    borderColor: '#DEE2E6',
+    borderColor: brand.borderStrong,
     borderRadius: 12,
     paddingVertical: 12,
     paddingHorizontal: 16,
   },
   optionSelected: {
-    borderColor: brand.green700,
-    backgroundColor: brand.green100,
+    borderColor: brand.accent,
+    backgroundColor: brand.accentSurface,
   },
   optionText: {
     fontSize: 15,
-    color: brand.text,
+    color: brand.muted,
     fontWeight: '500',
   },
   optionTextSelected: {
-    color: brand.green900,
-    fontWeight: '700',
+    color: brand.accent,
+    fontWeight: '800',
   },
   groupPickerLabel: {
     fontSize: 14,
@@ -230,7 +230,7 @@ const styles = StyleSheet.create({
   },
   groupHint: {
     fontSize: 14,
-    color: brand.green700,
+    color: brand.accent,
     fontWeight: '600',
   },
   noGroups: {

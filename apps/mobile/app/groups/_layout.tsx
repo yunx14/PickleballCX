@@ -1,16 +1,12 @@
 import { Stack } from 'expo-router';
 
-import { brand } from '@/constants/brand';
+import { stackScreenOptions } from '@/constants/navigation';
 
 export default function GroupDetailLayout() {
   return (
-    <Stack
-      screenOptions={{
-        headerStyle: { backgroundColor: brand.sand },
-        headerTintColor: brand.green900,
-        headerTitleStyle: { fontWeight: '700' },
-        contentStyle: { backgroundColor: brand.sand },
-      }}
-    />
+    <Stack screenOptions={stackScreenOptions}>
+      <Stack.Screen name="[id]/announcements/index" options={{ title: 'Announcements' }} />
+      <Stack.Screen name="[id]/announcements/new" options={{ title: 'New announcement' }} />
+    </Stack>
   );
 }

@@ -8,24 +8,26 @@ export default function TabLayout() {
   return (
     <Tabs
       screenOptions={{
-        tabBarActiveTintColor: brand.green700,
+        tabBarActiveTintColor: brand.accent,
         tabBarInactiveTintColor: brand.muted,
-        headerStyle: { backgroundColor: brand.sand },
+        headerStyle: { backgroundColor: brand.background },
         headerShadowVisible: false,
-        headerTintColor: brand.green900,
-        headerTitleStyle: { fontWeight: '700', fontSize: 17 },
+        headerTintColor: brand.text,
+        headerTitleStyle: { fontWeight: '800', fontSize: 17, color: brand.text },
         tabBarStyle: {
-          backgroundColor: brand.white,
-          borderTopColor: '#E9ECEF',
+          backgroundColor: brand.background,
+          borderTopColor: brand.border,
           paddingTop: spacing.xs,
           height: 60,
         },
         tabBarLabelStyle: {
-          fontSize: 12,
-          fontWeight: '600',
+          fontSize: 11,
+          fontWeight: '700',
           marginBottom: spacing.xs,
+          textTransform: 'uppercase',
+          letterSpacing: 0.4,
         },
-        sceneStyle: { backgroundColor: brand.sand },
+        sceneStyle: { backgroundColor: brand.background },
       }}>
       <Tabs.Screen
         name="index"

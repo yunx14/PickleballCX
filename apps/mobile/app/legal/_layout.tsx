@@ -1,17 +1,12 @@
 import { Stack } from 'expo-router';
 
-import { brand } from '@/constants/brand';
+import { stackScreenOptions } from '@/constants/navigation';
 
 export default function LegalLayout() {
   return (
-    <Stack
-      screenOptions={{
-        headerStyle: { backgroundColor: brand.sand },
-        headerTintColor: brand.green900,
-        headerTitleStyle: { fontWeight: '700' },
-        contentStyle: { backgroundColor: brand.sand },
-      }}>
+    <Stack screenOptions={stackScreenOptions}>
       <Stack.Screen name="privacy" options={{ title: 'Privacy Policy' }} />
+      <Stack.Screen name="terms" options={{ title: 'Terms of Service' }} />
     </Stack>
   );
 }

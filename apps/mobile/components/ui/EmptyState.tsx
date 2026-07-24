@@ -1,7 +1,7 @@
 import { StyleSheet, Text, View } from 'react-native';
 
 import { brand } from '@/constants/brand';
-import { border, cardShadow, radius, spacing, typography } from '@/constants/theme';
+import { border, radius, spacing, typography } from '@/constants/theme';
 
 export function EmptyState({
   title,
@@ -23,12 +23,11 @@ export function EmptyState({
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: brand.white,
+    backgroundColor: brand.surface,
     borderRadius: radius.lg,
     padding: spacing.xl,
     borderWidth: border.width,
     borderColor: border.color,
-    ...cardShadow(),
   },
   title: {
     ...typography.titleSm,

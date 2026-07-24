@@ -20,9 +20,9 @@ export function SessionCard({
 }) {
   const headcount =
     event.max_players != null && goingCount != null
-      ? `${goingCount}/${event.max_players} going`
+      ? `${goingCount}/${event.max_players}`
       : goingCount != null
-        ? `${goingCount} going`
+        ? `${goingCount}`
         : null;
 
   const isOpenPlay = event.group_id == null;
@@ -34,7 +34,7 @@ export function SessionCard({
           <Text style={styles.datetime}>{formatSessionDateTime(event.starts_at)}</Text>
           {isOpenPlay ? (
             <View style={styles.badge}>
-              <Text style={styles.badgeText}>Open play</Text>
+              <Text style={styles.badgeText}>OPEN</Text>
             </View>
           ) : null}
         </View>
@@ -45,7 +45,11 @@ export function SessionCard({
         {event.courts?.address ? <Text style={styles.address}>{event.courts.address}</Text> : null}
         <View style={styles.footerRow}>
           {distanceLabel ? <Text style={styles.distance}>{distanceLabel}</Text> : null}
-          {headcount ? <Text style={styles.headcount}>{headcount}</Text> : null}
+          {headcount ? (
+            <View style={styles.headcountBadge}>
+              <Text style={styles.headcount}>{headcount} going</Text>
+            </View>
+          ) : null}
         </View>
       </Card>
     </View>
@@ -66,19 +70,22 @@ const styles = StyleSheet.create({
   datetime: {
     ...typography.caption,
     fontWeight: '700',
-    color: brand.green700,
+    color: brand.accent,
     flexShrink: 1,
   },
   badge: {
-    backgroundColor: brand.green100,
+    backgroundColor: brand.accentSurface,
     borderRadius: 999,
     paddingHorizontal: spacing.sm,
     paddingVertical: 3,
+    borderWidth: 1,
+    borderColor: brand.accent,
   },
   badgeText: {
-    fontSize: 11,
-    fontWeight: '700',
-    color: brand.green900,
+    fontSize: 10,
+    fontWeight: '800',
+    color: brand.accent,
+    letterSpacing: 0.8,
   },
   title: {
     fontSize: 18,
@@ -105,11 +112,17 @@ const styles = StyleSheet.create({
   distance: {
     fontSize: 13,
     fontWeight: '700',
-    color: brand.green700,
+    color: brand.accent,
+  },
+  headcountBadge: {
+    backgroundColor: brand.surfaceElevated,
+    borderRadius: 999,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: 4,
   },
   headcount: {
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: '700',
-    color: brand.green900,
+    color: brand.text,
   },
 });

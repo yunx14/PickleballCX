@@ -1,26 +1,26 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import {
   profileSetupSchema,
-  SKILL_LEVELS,
-  SKILL_LEVEL_LABELS,
   type ProfileSetupInput,
-  type SkillLevel,
 } from '@pickleballcx/shared';
 import { router } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
-import { Pressable, ScrollView, StyleSheet, Text } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import {
+  AuthBrandMark,
+  AuthHeading,
   ErrorText,
   FieldLabel,
   PrimaryButton,
   ScreenContainer,
   Subtitle,
   TextField,
-  Title,
 } from '@/components/ui/Screen';
+import { SkillPicker } from '@/components/ui/SkillPicker';
 import { brand } from '@/constants/brand';
+import { spacing } from '@/constants/theme';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/providers/AuthProvider';
 
@@ -87,9 +87,13 @@ export default function SetupProfileScreen() {
   );
 
   return (
-    <ScrollView contentContainerStyle={{ flexGrow: 1 }} keyboardShouldPersistTaps="handled">
+    <ScrollView
+      contentContainerStyle={styles.scroll}
+      keyboardShouldPersistTaps="handled"
+      style={styles.scrollView}>
       <ScreenContainer>
-        <Title>Set up your profile</Title>
+        <AuthBrandMark />
+        <AuthHeading>Set up your profile</AuthHeading>
         <Subtitle>
           Your skill level shows on RSVP lists so groups can match games. It is self-reported.
         </Subtitle>
@@ -135,53 +139,11 @@ export default function SetupProfileScreen() {
   );
 }
 
-function SkillPicker({
-  value,
-  onChange,
-}: {
-  value?: SkillLevel;
-  onChange: (value: SkillLevel) => void;
-}) {
-  return (
-    <>
-      {SKILL_LEVELS.map((level) => {
-        const selected = value === level;
-        return (
-          <Pressable
-            key={level}
-            onPress={() => onChange(level)}
-            style={[styles.skillOption, selected && styles.skillOptionSelected]}>
-            <Text style={[styles.skillText, selected && styles.skillTextSelected]}>
-              {SKILL_LEVEL_LABELS[level]}
-            </Text>
-          </Pressable>
-        );
-      })}
-    </>
-  );
-}
-
 const styles = StyleSheet.create({
-  skillOption: {
-    backgroundColor: brand.white,
-    borderWidth: 1,
-    borderColor: '#DEE2E6',
-    borderRadius: 12,
-    paddingVertical: 14,
-    paddingHorizontal: 16,
-    marginBottom: 10,
+  scrollView: {
+    backgroundColor: brand.background,
   },
-  skillOptionSelected: {
-    borderColor: brand.green700,
-    backgroundColor: brand.green100,
-  },
-  skillText: {
-    fontSize: 16,
-    color: brand.text,
-    fontWeight: '500',
-  },
-  skillTextSelected: {
-    color: brand.green900,
-    fontWeight: '700',
+  scroll: {
+    flexGrow: 1,
   },
 });

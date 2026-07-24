@@ -9,14 +9,14 @@ import {
   View,
 } from 'react-native';
 
+import { Card } from '@/components/ui/Card';
+import { EmptyState } from '@/components/ui/EmptyState';
 import { PrimaryButton } from '@/components/ui/Screen';
+import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import { brand } from '@/constants/brand';
+import { spacing } from '@/constants/theme';
 import { useGroups } from '@/hooks/useGroups';
-import {
-  createGroupRoute,
-  groupRoute,
-  joinGroupRoute,
-} from '@/lib/routes';
+import { createGroupRoute, groupRoute, joinGroupRoute } from '@/lib/routes';
 
 export default function GroupsScreen() {
   const { data: groups, isLoading, isRefetching, refetch, error } = useGroups();
@@ -24,7 +24,7 @@ export default function GroupsScreen() {
   if (isLoading) {
     return (
       <View style={styles.centered}>
-        <ActivityIndicator size="large" color={brand.green700} />
+        <ActivityIndicator size="large" color={brand.accent} />
       </View>
     );
   }
@@ -32,11 +32,11 @@ export default function GroupsScreen() {
   if (error) {
     return (
       <View style={styles.container}>
-        <View style={styles.emptyCard}>
-          <Text style={styles.emptyTitle}>Could not load groups</Text>
-          <Text style={styles.emptyBody}>{error.message}</Text>
-          <PrimaryButton label="Try again" onPress={() => void refetch()} />
-        </View>
+        <EmptyState
+          title="Could not load groups"
+          body={error.message}
+          action={<PrimaryButton label="Try again" onPress={() => void refetch()} />}
+        />
       </View>
     );
   }
@@ -44,13 +44,14 @@ export default function GroupsScreen() {
   if (!groups?.length) {
     return (
       <View style={styles.container}>
-        <View style={styles.emptyCard}>
-          <Text style={styles.emptyTitle}>No groups yet</Text>
-          <Text style={styles.emptyBody}>
-            Create a group for your regular pickleball crew or join with an invite code. Groups keep
-            courts, sessions, and members in one place.
-          </Text>
-        </View>
+        <ScreenHeader
+          title="Groups"
+          subtitle="Create a crew or join with an invite code."
+        />
+        <EmptyState
+          title="No groups yet"
+          body="Create a group for your regular pickleball crew or join with an invite code. Groups keep courts, sessions, and members in one place."
+        />
         <PrimaryButton label="Create a group" onPress={() => router.push(createGroupRoute)} />
         <Pressable onPress={() => router.push(joinGroupRoute)} style={styles.secondaryLink}>
           <Text style={styles.secondaryLinkText}>Have an invite code? Join a group</Text>
@@ -67,7 +68,11 @@ export default function GroupsScreen() {
         refreshControl={<RefreshControl refreshing={isRefetching} onRefresh={() => void refetch()} />}
         contentContainerStyle={styles.listContent}
         ListHeaderComponent={
-          <View style={styles.actions}>
+          <View style={styles.headerBlock}>
+            <ScreenHeader
+              title="Groups"
+              subtitle="Your pickleball crews and invite codes."
+            />
             <PrimaryButton label="Create group" onPress={() => router.push(createGroupRoute)} />
             <Pressable onPress={() => router.push(joinGroupRoute)} style={styles.secondaryLink}>
               <Text style={styles.secondaryLinkText}>Join with invite code</Text>
@@ -75,14 +80,12 @@ export default function GroupsScreen() {
           </View>
         }
         renderItem={({ item }) => (
-          <Pressable
-            onPress={() => router.push(groupRoute(item.id))}
-            style={({ pressed }) => [styles.groupCard, pressed && styles.groupCardPressed]}>
+          <Card onPress={() => router.push(groupRoute(item.id))}>
             <Text style={styles.groupName}>{item.name}</Text>
             <Text style={styles.groupMeta}>
               {item.role === 'admin' ? 'Admin' : 'Member'} · Invite {item.invite_code}
             </Text>
-          </Pressable>
+          </Card>
         )}
       />
     </View>
@@ -94,70 +97,43 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: brand.sand,
+    backgroundColor: brand.background,
   },
   container: {
     flex: 1,
-    backgroundColor: brand.sand,
-    padding: 20,
+    backgroundColor: brand.background,
+    padding: spacing.xl,
+    gap: spacing.md,
   },
   listContainer: {
     flex: 1,
-    backgroundColor: brand.sand,
+    backgroundColor: brand.background,
   },
   listContent: {
-    padding: 20,
-    paddingBottom: 40,
+    padding: spacing.xl,
+    paddingBottom: spacing.xxxl,
+    gap: spacing.md,
   },
-  actions: {
-    marginBottom: 16,
-  },
-  emptyCard: {
-    backgroundColor: brand.white,
-    borderRadius: 16,
-    padding: 20,
-    borderWidth: 1,
-    borderColor: '#E9ECEF',
-    marginBottom: 20,
-  },
-  emptyTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: brand.text,
-    marginBottom: 8,
-  },
-  emptyBody: {
-    fontSize: 15,
-    lineHeight: 22,
-    color: brand.muted,
-  },
-  groupCard: {
-    backgroundColor: brand.white,
-    borderRadius: 16,
-    padding: 18,
-    borderWidth: 1,
-    borderColor: '#E9ECEF',
-    marginBottom: 12,
-  },
-  groupCardPressed: {
-    opacity: 0.85,
+  headerBlock: {
+    gap: spacing.md,
+    marginBottom: spacing.sm,
   },
   groupName: {
     fontSize: 18,
     fontWeight: '700',
     color: brand.text,
-    marginBottom: 4,
+    marginBottom: spacing.xs,
   },
   groupMeta: {
     fontSize: 14,
     color: brand.muted,
   },
   secondaryLink: {
-    marginTop: 16,
     alignItems: 'center',
+    paddingVertical: spacing.sm,
   },
   secondaryLinkText: {
-    color: brand.green700,
+    color: brand.accent,
     fontSize: 15,
     fontWeight: '600',
   },

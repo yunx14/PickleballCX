@@ -31,7 +31,7 @@ const styles = StyleSheet.create({
   },
   eyebrow: {
     ...typography.eyebrow,
-    color: brand.green700,
+    color: brand.accent,
   },
   title: {
     ...typography.title,

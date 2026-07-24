@@ -25,7 +25,7 @@ export default function CourtsScreen() {
   if (isLoading) {
     return (
       <View style={styles.centered}>
-        <ActivityIndicator size="large" color={brand.green700} />
+        <ActivityIndicator size="large" color={brand.accent} />
       </View>
     );
   }
@@ -88,16 +88,16 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: brand.sand,
+    backgroundColor: brand.background,
   },
   container: {
     flex: 1,
-    backgroundColor: brand.sand,
+    backgroundColor: brand.background,
     padding: 20,
   },
   listContainer: {
     flex: 1,
-    backgroundColor: brand.sand,
+    backgroundColor: brand.background,
   },
   listContent: {
     padding: 20,
@@ -112,18 +112,18 @@ const styles = StyleSheet.create({
     fontSize: 14,
     lineHeight: 20,
     color: brand.muted,
-    backgroundColor: brand.white,
+    backgroundColor: brand.surface,
     borderRadius: 12,
     padding: 14,
     borderWidth: 1,
-    borderColor: '#E9ECEF',
+    borderColor: brand.border,
   },
   emptyCard: {
-    backgroundColor: brand.white,
+    backgroundColor: brand.surface,
     borderRadius: 16,
     padding: 20,
     borderWidth: 1,
-    borderColor: '#E9ECEF',
+    borderColor: brand.border,
     marginTop: 8,
   },
   emptyTitle: {
@@ -138,11 +138,11 @@ const styles = StyleSheet.create({
     color: brand.muted,
   },
   courtCard: {
-    backgroundColor: brand.white,
+    backgroundColor: brand.surface,
     borderRadius: 16,
     padding: 18,
     borderWidth: 1,
-    borderColor: '#E9ECEF',
+    borderColor: brand.border,
     marginBottom: 12,
   },
   courtCardPressed: {
@@ -162,7 +162,7 @@ const styles = StyleSheet.create({
   courtMeta: {
     fontSize: 13,
     fontWeight: '600',
-    color: brand.green700,
+    color: brand.accent,
   },
   error: {
     fontSize: 15,

@@ -3,7 +3,7 @@ import { signInSchema, type SignInInput } from '@pickleballcx/shared';
 import { Link, router } from 'expo-router';
 import { useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
-import { ScrollView } from 'react-native';
+import { ScrollView, StyleSheet } from 'react-native';
 
 import {
   AuthBrandMark,
@@ -15,6 +15,7 @@ import {
   Subtitle,
   TextField,
 } from '@/components/ui/Screen';
+import { brand } from '@/constants/brand';
 import { supabase } from '@/lib/supabase';
 
 export default function LoginScreen() {
@@ -37,7 +38,10 @@ export default function LoginScreen() {
   });
 
   return (
-    <ScrollView contentContainerStyle={{ flexGrow: 1 }}>
+    <ScrollView
+      contentContainerStyle={styles.scroll}
+      keyboardShouldPersistTaps="handled"
+      style={styles.scrollView}>
       <ScreenContainer>
         <AuthBrandMark />
         <Subtitle>Sign in to coordinate sessions with your group.</Subtitle>
@@ -90,3 +94,12 @@ export default function LoginScreen() {
     </ScrollView>
   );
 }
+
+const styles = StyleSheet.create({
+  scrollView: {
+    backgroundColor: brand.background,
+  },
+  scroll: {
+    flexGrow: 1,
+  },
+});

@@ -39,24 +39,25 @@ const styles = StyleSheet.create({
   chip: {
     borderWidth: border.width,
     borderColor: border.colorStrong,
-    backgroundColor: brand.white,
+    backgroundColor: brand.surface,
     borderRadius: radius.pill,
     paddingHorizontal: spacing.lg,
     paddingVertical: spacing.sm,
   },
   chipSelected: {
-    borderColor: brand.green700,
-    backgroundColor: brand.green100,
+    borderColor: brand.accent,
+    backgroundColor: brand.accentSurface,
   },
   chipDisabled: {
-    opacity: 0.5,
+    opacity: 0.45,
   },
   text: {
     ...typography.label,
     fontSize: 14,
+    color: brand.muted,
   },
   textSelected: {
-    color: brand.green900,
+    color: brand.accent,
   },
   textDisabled: {
     color: brand.muted,

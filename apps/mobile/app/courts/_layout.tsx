@@ -1,16 +1,10 @@
 import { Stack } from 'expo-router';
 
-import { brand } from '@/constants/brand';
+import { stackScreenOptions } from '@/constants/navigation';
 
 export default function CourtsLayout() {
   return (
-    <Stack
-      screenOptions={{
-        headerStyle: { backgroundColor: brand.sand },
-        headerTintColor: brand.green900,
-        headerTitleStyle: { fontWeight: '700' },
-        contentStyle: { backgroundColor: brand.sand },
-      }}>
+    <Stack screenOptions={stackScreenOptions}>
       <Stack.Screen name="index" options={{ title: 'Courts' }} />
       <Stack.Screen name="new" options={{ title: 'Add court' }} />
       <Stack.Screen name="[courtId]" options={{ title: 'Court' }} />

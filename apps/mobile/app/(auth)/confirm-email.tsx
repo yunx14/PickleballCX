@@ -1,10 +1,11 @@
 import { router, useLocalSearchParams } from 'expo-router';
 
 import {
+  AuthBrandMark,
+  AuthHeading,
   PrimaryButton,
   ScreenContainer,
   Subtitle,
-  Title,
 } from '@/components/ui/Screen';
 
 export default function ConfirmEmailScreen() {
@@ -12,7 +13,8 @@ export default function ConfirmEmailScreen() {
 
   return (
     <ScreenContainer>
-      <Title>Check your email</Title>
+      <AuthBrandMark />
+      <AuthHeading>Check your email</AuthHeading>
       <Subtitle>
         {email
           ? `We sent a confirmation link to ${email}. Open it to activate your account, then sign in to finish setting up your profile.`

@@ -7,7 +7,7 @@ import {
 } from '@pickleballcx/shared';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
-import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Linking, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { SkillBadge } from '@/components/ui/SkillBadge';
 import { PrimaryButton } from '@/components/ui/Screen';
@@ -22,6 +22,7 @@ import {
   useRsvp,
 } from '@/hooks/useEvents';
 import { formatSessionDateTime } from '@/lib/format';
+import { getDirectionsUrl } from '@/lib/maps-links';
 import { editSessionRoute, newSessionRoute, sessionsTabRoute } from '@/lib/routes';
 import { useAuth } from '@/providers/AuthProvider';
 
@@ -45,7 +46,7 @@ export default function SessionDetailScreen() {
   if (isLoading || rsvpsLoading) {
     return (
       <View style={styles.centered}>
-        <ActivityIndicator size="large" color={brand.green700} />
+        <ActivityIndicator size="large" color={brand.accent} />
       </View>
     );
   }
@@ -69,6 +70,17 @@ export default function SessionDetailScreen() {
     .map((level) => `${breakdown[level]} ${SKILL_LEVEL_LABELS[level].toLowerCase()}`)
     .join(', ');
 
+  const directionsUrl = getDirectionsUrl({
+    address: event.courts?.address,
+    lat: event.lat,
+    lng: event.lng,
+  });
+
+  const handleOpenDirections = () => {
+    if (!directionsUrl) return;
+    void Linking.openURL(directionsUrl);
+  };
+
   const handleConfirmDelete = async () => {
     setDeleteError(undefined);
 
@@ -91,6 +103,11 @@ export default function SessionDetailScreen() {
           {event.groups?.name ?? 'Open play'} · {SESSION_TYPE_LABELS[event.session_type]}
         </Text>
         {event.courts?.address ? <Text style={styles.address}>{event.courts.address}</Text> : null}
+        {directionsUrl ? (
+          <Pressable onPress={handleOpenDirections} style={styles.directionsLink}>
+            <Text style={styles.directionsLinkText}>Get directions →</Text>
+          </Pressable>
+        ) : null}
         {event.courts?.num_courts ? (
           <Text style={styles.meta}>{event.courts.num_courts} courts at this venue</Text>
         ) : null}
@@ -231,11 +248,11 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: brand.sand,
+    backgroundColor: brand.background,
   },
   container: {
     flex: 1,
-    backgroundColor: brand.sand,
+    backgroundColor: brand.background,
     padding: 20,
   },
   scrollContent: {
@@ -243,11 +260,11 @@ const styles = StyleSheet.create({
     paddingBottom: 40,
   },
   headerCard: {
-    backgroundColor: brand.white,
+    backgroundColor: brand.surface,
     borderRadius: 16,
     padding: 20,
     borderWidth: 1,
-    borderColor: '#E9ECEF',
+    borderColor: brand.border,
     marginBottom: 16,
   },
   creatorActions: {
@@ -255,7 +272,7 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   deleteButton: {
-    backgroundColor: brand.white,
+    backgroundColor: brand.surface,
     borderWidth: 1,
     borderColor: brand.danger,
     borderRadius: 12,
@@ -274,11 +291,11 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   confirmCard: {
-    backgroundColor: brand.white,
+    backgroundColor: brand.surface,
     borderRadius: 16,
     padding: 16,
     borderWidth: 1,
-    borderColor: '#E9ECEF',
+    borderColor: brand.border,
     gap: 12,
   },
   confirmTitle: {
@@ -301,9 +318,9 @@ const styles = StyleSheet.create({
   },
   confirmCancelButton: {
     flex: 1,
-    backgroundColor: brand.white,
+    backgroundColor: brand.surface,
     borderWidth: 1,
-    borderColor: '#DEE2E6',
+    borderColor: brand.borderStrong,
     borderRadius: 12,
     paddingVertical: 14,
   },
@@ -330,14 +347,14 @@ const styles = StyleSheet.create({
     paddingVertical: 4,
   },
   secondaryLinkText: {
-    color: brand.green700,
+    color: brand.accent,
     fontSize: 15,
     fontWeight: '600',
   },
   datetime: {
     fontSize: 14,
     fontWeight: '600',
-    color: brand.green700,
+    color: brand.accent,
     marginBottom: 8,
   },
   title: {
@@ -356,6 +373,16 @@ const styles = StyleSheet.create({
     color: brand.text,
     marginBottom: 4,
   },
+  directionsLink: {
+    alignSelf: 'flex-start',
+    paddingVertical: 4,
+    marginBottom: 4,
+  },
+  directionsLinkText: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: brand.accent,
+  },
   meta: {
     fontSize: 14,
     color: brand.muted,
@@ -368,20 +395,22 @@ const styles = StyleSheet.create({
     marginTop: 8,
   },
   headcountCard: {
-    backgroundColor: brand.green100,
+    backgroundColor: brand.accentSurface,
     borderRadius: 16,
+    borderWidth: 1,
+    borderColor: brand.accent,
     padding: 18,
     marginBottom: 20,
   },
   headcountValue: {
     fontSize: 22,
     fontWeight: '800',
-    color: brand.green900,
+    color: brand.accent,
     marginBottom: 4,
   },
   skillSummary: {
     fontSize: 14,
-    color: brand.green700,
+    color: brand.muted,
   },
   sectionTitle: {
     fontSize: 18,
@@ -396,16 +425,16 @@ const styles = StyleSheet.create({
     marginBottom: 24,
   },
   rsvpButton: {
-    backgroundColor: brand.white,
+    backgroundColor: brand.surface,
     borderWidth: 1,
-    borderColor: '#DEE2E6',
+    borderColor: brand.borderStrong,
     borderRadius: 999,
     paddingHorizontal: 16,
     paddingVertical: 10,
   },
   rsvpButtonSelected: {
-    backgroundColor: brand.green700,
-    borderColor: brand.green700,
+    backgroundColor: brand.accent,
+    borderColor: brand.accent,
   },
   rsvpText: {
     fontSize: 14,
@@ -413,14 +442,14 @@ const styles = StyleSheet.create({
     color: brand.text,
   },
   rsvpTextSelected: {
-    color: brand.white,
+    color: brand.accentText,
   },
   attendeeCard: {
-    backgroundColor: brand.white,
+    backgroundColor: brand.surface,
     borderRadius: 12,
     padding: 14,
     borderWidth: 1,
-    borderColor: '#E9ECEF',
+    borderColor: brand.border,
     marginBottom: 10,
     gap: 8,
   },

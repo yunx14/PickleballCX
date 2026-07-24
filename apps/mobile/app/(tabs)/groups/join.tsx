@@ -6,13 +6,13 @@ import { Controller, useForm } from 'react-hook-form';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import {
+  AuthHeading,
   ErrorText,
   FieldLabel,
   PrimaryButton,
   ScreenContainer,
   Subtitle,
   TextField,
-  Title,
 } from '@/components/ui/Screen';
 import { brand } from '@/constants/brand';
 import { useGroupPreview, useJoinGroup } from '@/hooks/useGroups';
@@ -46,9 +46,12 @@ export default function JoinGroupScreen() {
   });
 
   return (
-    <ScrollView contentContainerStyle={{ flexGrow: 1 }} keyboardShouldPersistTaps="handled">
+    <ScrollView
+      contentContainerStyle={styles.scroll}
+      keyboardShouldPersistTaps="handled"
+      style={styles.scrollView}>
       <ScreenContainer>
-        <Title>Join a group</Title>
+        <AuthHeading>Join a group</AuthHeading>
         <Subtitle>Enter the invite code from your group admin to join their pickleball crew.</Subtitle>
         <ErrorText message={formError} />
 
@@ -96,10 +99,10 @@ export default function JoinGroupScreen() {
 
 const styles = StyleSheet.create({
   previewCard: {
-    backgroundColor: brand.white,
+    backgroundColor: brand.surface,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: '#E9ECEF',
+    borderColor: brand.border,
     padding: 16,
     marginBottom: 8,
   },
@@ -120,5 +123,11 @@ const styles = StyleSheet.create({
   previewError: {
     fontSize: 15,
     color: brand.danger,
+  },
+  scrollView: {
+    backgroundColor: brand.background,
+  },
+  scroll: {
+    flexGrow: 1,
   },
 });

@@ -6,7 +6,7 @@ import { useForm } from 'react-hook-form';
 import { ActivityIndicator, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { SessionForm } from '@/components/sessions/SessionForm';
-import { PrimaryButton, ScreenContainer, Subtitle, Title } from '@/components/ui/Screen';
+import { PrimaryButton, FormScreenContainer, Subtitle, Title } from '@/components/ui/Screen';
 import { brand } from '@/constants/brand';
 import { useCourts } from '@/hooks/useCourts';
 import { useEvent, useUpdateEvent } from '@/hooks/useEvents';
@@ -78,44 +78,44 @@ export default function EditSessionScreen() {
   if (eventLoading || courtsLoading) {
     return (
       <View style={styles.centered}>
-        <ActivityIndicator size="large" color={brand.green700} />
+        <ActivityIndicator size="large" color={brand.accent} />
       </View>
     );
   }
 
   if (eventError || !event) {
     return (
-      <ScreenContainer>
+      <FormScreenContainer>
         <Title>Session not found</Title>
         <Subtitle>{eventError?.message ?? 'This session may have been removed.'}</Subtitle>
         <PrimaryButton label="Go back" onPress={() => router.back()} />
-      </ScreenContainer>
+      </FormScreenContainer>
     );
   }
 
   if (event.created_by !== session?.user.id) {
     return (
-      <ScreenContainer>
+      <FormScreenContainer>
         <Title>Cannot edit session</Title>
         <Subtitle>Only the person who created this session can edit it.</Subtitle>
         <PrimaryButton label="Go back" onPress={() => router.back()} />
-      </ScreenContainer>
+      </FormScreenContainer>
     );
   }
 
   if (!courts?.length) {
     return (
-      <ScreenContainer>
+      <FormScreenContainer>
         <Title>Add a court first</Title>
         <Subtitle>This group needs at least one court before you can edit the session.</Subtitle>
         <PrimaryButton label="Go back" onPress={() => router.back()} />
-      </ScreenContainer>
+      </FormScreenContainer>
     );
   }
 
   return (
     <ScrollView contentContainerStyle={{ flexGrow: 1 }} keyboardShouldPersistTaps="handled">
-      <ScreenContainer>
+      <FormScreenContainer>
         <SessionForm
           title="Edit session"
           subtitle="Update the court, time, or session details."
@@ -128,7 +128,7 @@ export default function EditSessionScreen() {
           isSubmitting={isSubmitting || updateEvent.isPending}
           onSubmit={onSubmit}
         />
-      </ScreenContainer>
+      </FormScreenContainer>
     </ScrollView>
   );
 }
@@ -138,6 +138,6 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: brand.sand,
+    backgroundColor: brand.background,
   },
 });

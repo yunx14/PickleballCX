@@ -21,22 +21,23 @@ export const radius = {
 } as const;
 
 export const border = {
-  color: '#E9ECEF',
-  colorStrong: '#DEE2E6',
+  color: brand.border,
+  colorStrong: brand.borderStrong,
   width: 1,
 } as const;
 
 export const typography = {
   eyebrow: {
-    fontSize: 13,
-    fontWeight: '600',
-    letterSpacing: 0.4,
+    fontSize: 12,
+    fontWeight: '700',
+    letterSpacing: 1.2,
     textTransform: 'uppercase',
   } satisfies TextStyle,
   title: {
     fontSize: 28,
-    fontWeight: '700',
-    color: brand.green900,
+    fontWeight: '800',
+    color: brand.text,
+    letterSpacing: -0.5,
   } satisfies TextStyle,
   titleSm: {
     fontSize: 22,
@@ -67,13 +68,13 @@ export const typography = {
 export function cardShadow(): ViewStyle {
   return Platform.select({
     ios: {
-      shadowColor: '#1B4332',
-      shadowOffset: { width: 0, height: 2 },
-      shadowOpacity: 0.08,
-      shadowRadius: 8,
+      shadowColor: brand.accent,
+      shadowOffset: { width: 0, height: 0 },
+      shadowOpacity: 0.06,
+      shadowRadius: 12,
     },
     android: {
-      elevation: 2,
+      elevation: 3,
     },
     default: {},
   }) as ViewStyle;

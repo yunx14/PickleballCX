@@ -3,7 +3,7 @@ import { signUpSchema, type SignUpInput } from '@pickleballcx/shared';
 import { Link, router } from 'expo-router';
 import { useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
-import { ScrollView } from 'react-native';
+import { ScrollView, StyleSheet } from 'react-native';
 
 import {
   AuthBrandMark,
@@ -16,6 +16,7 @@ import {
   Subtitle,
   TextField,
 } from '@/components/ui/Screen';
+import { brand } from '@/constants/brand';
 import { supabase } from '@/lib/supabase';
 
 export default function SignUpScreen() {
@@ -59,7 +60,10 @@ export default function SignUpScreen() {
   });
 
   return (
-    <ScrollView contentContainerStyle={{ flexGrow: 1 }} keyboardShouldPersistTaps="handled">
+    <ScrollView
+      contentContainerStyle={styles.scroll}
+      keyboardShouldPersistTaps="handled"
+      style={styles.scrollView}>
       <ScreenContainer>
         <AuthBrandMark />
         <AuthHeading>Create account</AuthHeading>
@@ -130,3 +134,12 @@ export default function SignUpScreen() {
     </ScrollView>
   );
 }
+
+const styles = StyleSheet.create({
+  scrollView: {
+    backgroundColor: brand.background,
+  },
+  scroll: {
+    flexGrow: 1,
+  },
+});

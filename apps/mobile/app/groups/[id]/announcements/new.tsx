@@ -95,7 +95,7 @@ export default function NewGroupAnnouncementScreen() {
             <Switch
               value={value}
               onValueChange={onChange}
-              trackColor={{ false: '#DEE2E6', true: brand.green700 }}
+              trackColor={{ false: brand.borderStrong, true: brand.accent }}
             />
           </Pressable>
         )}
@@ -114,11 +114,13 @@ const styles = StyleSheet.create({
   scrollContent: {
     padding: 20,
     paddingBottom: 40,
+    backgroundColor: brand.background,
+    flexGrow: 1,
   },
   bodyInput: {
-    backgroundColor: brand.white,
+    backgroundColor: brand.surface,
     borderWidth: 1,
-    borderColor: '#DEE2E6',
+    borderColor: brand.borderStrong,
     borderRadius: 12,
     paddingHorizontal: 16,
     paddingVertical: 14,
@@ -131,10 +133,10 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: brand.white,
+    backgroundColor: brand.surface,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: '#E9ECEF',
+    borderColor: brand.border,
     padding: 16,
     marginBottom: 16,
     gap: 12,

@@ -1,6 +1,7 @@
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Linking, ScrollView, StyleSheet, Text } from 'react-native';
 
 import { brand } from '@/constants/brand';
+import { SUPPORT_EMAIL, supportMailtoUrl } from '@/constants/support';
 
 export default function PrivacyPolicyScreen() {
   return (
@@ -54,12 +55,25 @@ export default function PrivacyPolicyScreen() {
       <Text style={styles.heading}>Your choices</Text>
       <Text style={styles.paragraph}>
         You can sign out at any time. You can deny location and notification permissions in your
-        device settings. To delete your account, contact us (support email TBD before launch).
+        device settings. To delete your account, contact us at{' '}
+        <Text
+          accessibilityRole="link"
+          onPress={() => void Linking.openURL(supportMailtoUrl)}
+          style={styles.link}>
+          {SUPPORT_EMAIL}
+        </Text>
+        .
       </Text>
 
       <Text style={styles.heading}>Contact</Text>
       <Text style={styles.paragraph}>
-        Questions about this policy: add your support email before App Store submission.
+        Questions about this policy:{' '}
+        <Text
+          accessibilityRole="link"
+          onPress={() => void Linking.openURL(supportMailtoUrl)}
+          style={styles.link}>
+          {SUPPORT_EMAIL}
+        </Text>
       </Text>
     </ScrollView>
   );
@@ -70,6 +84,8 @@ const styles = StyleSheet.create({
     padding: 20,
     paddingBottom: 40,
     gap: 12,
+    backgroundColor: brand.background,
+    flexGrow: 1,
   },
   updated: {
     fontSize: 13,
@@ -88,7 +104,7 @@ const styles = StyleSheet.create({
     color: brand.text,
   },
   link: {
-    color: brand.green700,
+    color: brand.accent,
     fontWeight: '600',
   },
 });

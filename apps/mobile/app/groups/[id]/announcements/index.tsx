@@ -8,8 +8,11 @@ import {
   View,
 } from 'react-native';
 
+import { Card } from '@/components/ui/Card';
+import { EmptyState } from '@/components/ui/EmptyState';
 import { PrimaryButton } from '@/components/ui/Screen';
 import { brand } from '@/constants/brand';
+import { spacing } from '@/constants/theme';
 import {
   useDeleteGroupAnnouncement,
   useGroupAnnouncements,
@@ -31,7 +34,7 @@ export default function GroupAnnouncementsScreen() {
   if (isLoading) {
     return (
       <View style={styles.centered}>
-        <ActivityIndicator size="large" color={brand.green700} />
+        <ActivityIndicator size="large" color={brand.accent} />
       </View>
     );
   }
@@ -48,24 +51,28 @@ export default function GroupAnnouncementsScreen() {
       {error ? (
         <Text style={styles.errorText}>Could not load announcements.</Text>
       ) : announcements?.length === 0 ? (
-        <View style={styles.emptyCard}>
-          <Text style={styles.emptyTitle}>No announcements yet</Text>
-          <Text style={styles.emptyBody}>
-            {isAdmin
+        <EmptyState
+          title="No announcements yet"
+          body={
+            isAdmin
               ? 'Post updates about schedule changes, court reservations, or group norms.'
-              : 'Group admins can post announcements here.'}
-          </Text>
-        </View>
+              : 'Group admins can post announcements here.'
+          }
+        />
       ) : (
         announcements?.map((item) => {
           const isDeleting =
             deleteAnnouncement.isPending && deleteAnnouncement.variables === item.id;
 
           return (
-            <View key={item.id} style={styles.card}>
+            <Card key={item.id}>
               <View style={styles.cardHeader}>
                 <View style={styles.titleRow}>
-                  {item.pinned ? <Text style={styles.pinnedBadge}>Pinned</Text> : null}
+                  {item.pinned ? (
+                    <View style={styles.pinnedBadge}>
+                      <Text style={styles.pinnedBadgeText}>Pinned</Text>
+                    </View>
+                  ) : null}
                   <Text style={styles.title}>{item.title}</Text>
                 </View>
                 <Text style={styles.meta}>
@@ -83,7 +90,7 @@ export default function GroupAnnouncementsScreen() {
                   </Text>
                 </Pressable>
               ) : null}
-            </View>
+            </Card>
           );
         })
       )}
@@ -96,39 +103,36 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: brand.sand,
+    backgroundColor: brand.background,
   },
   scrollContent: {
-    padding: 20,
-    paddingBottom: 40,
-    gap: 12,
-  },
-  card: {
-    backgroundColor: brand.white,
-    borderRadius: 16,
-    padding: 18,
-    borderWidth: 1,
-    borderColor: '#E9ECEF',
-    gap: 8,
+    padding: spacing.xl,
+    paddingBottom: spacing.xxxl,
+    gap: spacing.md,
   },
   cardHeader: {
     gap: 4,
+    marginBottom: spacing.sm,
   },
   titleRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    gap: spacing.sm,
     flexWrap: 'wrap',
   },
   pinnedBadge: {
-    fontSize: 11,
-    fontWeight: '700',
-    color: brand.green900,
-    backgroundColor: brand.green100,
-    paddingHorizontal: 8,
+    backgroundColor: brand.accentSurface,
+    borderWidth: 1,
+    borderColor: brand.accent,
+    paddingHorizontal: spacing.sm,
     paddingVertical: 3,
     borderRadius: 999,
-    overflow: 'hidden',
+  },
+  pinnedBadgeText: {
+    fontSize: 10,
+    fontWeight: '800',
+    color: brand.accent,
+    letterSpacing: 0.6,
   },
   title: {
     fontSize: 18,
@@ -147,30 +151,13 @@ const styles = StyleSheet.create({
   },
   deleteLink: {
     alignSelf: 'flex-start',
-    paddingVertical: 4,
+    paddingVertical: spacing.xs,
+    marginTop: spacing.sm,
   },
   deleteLinkText: {
     fontSize: 13,
     fontWeight: '600',
     color: brand.danger,
-  },
-  emptyCard: {
-    backgroundColor: brand.white,
-    borderRadius: 16,
-    padding: 20,
-    borderWidth: 1,
-    borderColor: '#E9ECEF',
-    gap: 8,
-  },
-  emptyTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: brand.text,
-  },
-  emptyBody: {
-    fontSize: 15,
-    lineHeight: 22,
-    color: brand.muted,
   },
   errorText: {
     fontSize: 15,

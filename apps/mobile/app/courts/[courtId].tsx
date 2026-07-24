@@ -23,7 +23,7 @@ import {
   ErrorText,
   FieldLabel,
   PrimaryButton,
-  ScreenContainer,
+  FormScreenContainer,
   Subtitle,
   TextField,
   Title,
@@ -93,24 +93,24 @@ export default function CourtDetailScreen() {
   if (isLoading) {
     return (
       <View style={styles.centered}>
-        <ActivityIndicator size="large" color={brand.green700} />
+        <ActivityIndicator size="large" color={brand.accent} />
       </View>
     );
   }
 
   if (error || !court) {
     return (
-      <ScreenContainer>
+      <FormScreenContainer>
         <Title>Court not found</Title>
         <ErrorText message={error?.message ?? 'This court may have been removed.'} />
-      </ScreenContainer>
+      </FormScreenContainer>
     );
   }
 
   if (!isEditing) {
     return (
       <ScrollView contentContainerStyle={{ flexGrow: 1 }}>
-        <ScreenContainer>
+        <FormScreenContainer>
           <Title>{court.name}</Title>
           <Subtitle>{court.address}</Subtitle>
 
@@ -131,24 +131,24 @@ export default function CourtDetailScreen() {
           {isAppAdmin ? (
             <PrimaryButton label="Edit court" onPress={() => setIsEditing(true)} />
           ) : null}
-        </ScreenContainer>
+        </FormScreenContainer>
       </ScrollView>
     );
   }
 
   if (!isAppAdmin) {
     return (
-      <ScreenContainer>
+      <FormScreenContainer>
         <Title>Admin only</Title>
         <Subtitle>Only app admins can edit courts.</Subtitle>
         <PrimaryButton label="Go back" onPress={() => router.back()} />
-      </ScreenContainer>
+      </FormScreenContainer>
     );
   }
 
   return (
     <ScrollView contentContainerStyle={{ flexGrow: 1 }} keyboardShouldPersistTaps="handled">
-      <ScreenContainer>
+      <FormScreenContainer>
         <Title>Edit court</Title>
         <Subtitle>Update venue details in the global catalog.</Subtitle>
         <ErrorText message={formError} />
@@ -233,7 +233,7 @@ export default function CourtDetailScreen() {
         <Pressable onPress={() => setIsEditing(false)} style={styles.cancelLink}>
           <Text style={styles.cancelText}>Cancel</Text>
         </Pressable>
-      </ScreenContainer>
+      </FormScreenContainer>
     </ScrollView>
   );
 }
@@ -278,14 +278,14 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: brand.sand,
+    backgroundColor: brand.background,
   },
   detailCard: {
-    backgroundColor: brand.white,
+    backgroundColor: brand.surface,
     borderRadius: 16,
     padding: 20,
     borderWidth: 1,
-    borderColor: '#E9ECEF',
+    borderColor: brand.border,
     marginBottom: 24,
     gap: 16,
   },
@@ -311,9 +311,9 @@ const styles = StyleSheet.create({
     fontStyle: 'italic',
   },
   input: {
-    backgroundColor: brand.white,
+    backgroundColor: brand.surface,
     borderWidth: 1,
-    borderColor: '#DEE2E6',
+    borderColor: brand.borderStrong,
     borderRadius: 12,
     paddingHorizontal: 16,
     paddingVertical: 14,
@@ -326,26 +326,26 @@ const styles = StyleSheet.create({
     paddingTop: 14,
   },
   option: {
-    backgroundColor: brand.white,
+    backgroundColor: brand.surface,
     borderWidth: 1,
-    borderColor: '#DEE2E6',
+    borderColor: brand.borderStrong,
     borderRadius: 12,
     paddingVertical: 14,
     paddingHorizontal: 16,
     marginBottom: 10,
   },
   optionSelected: {
-    borderColor: brand.green700,
-    backgroundColor: brand.green100,
+    borderColor: brand.accent,
+    backgroundColor: brand.accentSurface,
   },
   optionText: {
     fontSize: 16,
-    color: brand.text,
+    color: brand.muted,
     fontWeight: '500',
   },
   optionTextSelected: {
-    color: brand.green900,
-    fontWeight: '700',
+    color: brand.accent,
+    fontWeight: '800',
   },
   cancelLink: {
     marginTop: 16,

@@ -74,7 +74,7 @@ export default function SessionsScreen() {
   if (isLoading) {
     return (
       <View style={styles.centered}>
-        <ActivityIndicator size="large" color={brand.green700} />
+        <ActivityIndicator size="large" color={brand.accent} />
       </View>
     );
   }
@@ -154,11 +154,11 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: brand.sand,
+    backgroundColor: brand.background,
   },
   listContainer: {
     flex: 1,
-    backgroundColor: brand.sand,
+    backgroundColor: brand.background,
   },
   discoveryHeader: {
     paddingHorizontal: spacing.xl,
@@ -185,14 +185,14 @@ const styles = StyleSheet.create({
     padding: spacing.xl,
     paddingTop: spacing.md,
     borderTopWidth: 1,
-    borderTopColor: '#E9ECEF',
-    backgroundColor: brand.white,
+    borderTopColor: brand.border,
+    backgroundColor: brand.surfaceElevated,
   },
   secondaryLink: {
     alignItems: 'center',
   },
   secondaryLinkText: {
-    color: brand.green700,
+    color: brand.accent,
     fontSize: 15,
     fontWeight: '600',
   },

@@ -1,8 +1,11 @@
 import { useLocalSearchParams } from 'expo-router';
 import { ActivityIndicator, FlatList, StyleSheet, Text, View } from 'react-native';
 
+import { Card } from '@/components/ui/Card';
+import { EmptyState } from '@/components/ui/EmptyState';
 import { SkillBadge } from '@/components/ui/SkillBadge';
 import { brand } from '@/constants/brand';
+import { spacing } from '@/constants/theme';
 import { useGroupMembers } from '@/hooks/useGroupMembers';
 
 export default function GroupMembersScreen() {
@@ -12,7 +15,7 @@ export default function GroupMembersScreen() {
   if (isLoading) {
     return (
       <View style={styles.centered}>
-        <ActivityIndicator size="large" color={brand.green700} />
+        <ActivityIndicator size="large" color={brand.accent} />
       </View>
     );
   }
@@ -27,20 +30,28 @@ export default function GroupMembersScreen() {
 
   return (
     <FlatList
+      style={styles.list}
       data={members}
       keyExtractor={(item) => item.user_id}
       contentContainerStyle={styles.listContent}
       ListEmptyComponent={
-        <Text style={styles.empty}>No members yet. Share your invite code to grow the group.</Text>
+        <EmptyState
+          title="No members yet"
+          body="Share your invite code to grow the group."
+        />
       }
       renderItem={({ item }) => (
-        <View style={styles.memberCard}>
+        <Card>
           <View style={styles.memberHeader}>
             <Text style={styles.memberName}>{item.display_name || 'Player'}</Text>
-            {item.role === 'admin' && <Text style={styles.adminBadge}>Admin</Text>}
+            {item.role === 'admin' ? (
+              <View style={styles.adminBadge}>
+                <Text style={styles.adminBadgeText}>Admin</Text>
+              </View>
+            ) : null}
           </View>
           <SkillBadge level={item.skill_level} />
-        </View>
+        </Card>
       )}
     />
   );
@@ -51,49 +62,46 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: brand.sand,
+    backgroundColor: brand.background,
   },
   container: {
     flex: 1,
-    backgroundColor: brand.sand,
-    padding: 20,
+    backgroundColor: brand.background,
+    padding: spacing.xl,
+  },
+  list: {
+    backgroundColor: brand.background,
   },
   listContent: {
-    padding: 20,
-    paddingBottom: 40,
-  },
-  memberCard: {
-    backgroundColor: brand.white,
-    borderRadius: 16,
-    padding: 18,
-    borderWidth: 1,
-    borderColor: '#E9ECEF',
-    marginBottom: 12,
-    gap: 10,
+    padding: spacing.xl,
+    paddingBottom: spacing.xxxl,
+    gap: spacing.md,
   },
   memberHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
+    marginBottom: spacing.sm,
   },
   memberName: {
     fontSize: 17,
     fontWeight: '700',
     color: brand.text,
+    flexShrink: 1,
   },
   adminBadge: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: brand.green700,
-    backgroundColor: brand.green100,
-    paddingHorizontal: 8,
+    backgroundColor: brand.accentSurface,
+    borderWidth: 1,
+    borderColor: brand.accent,
+    paddingHorizontal: spacing.sm,
     paddingVertical: 4,
     borderRadius: 999,
   },
-  empty: {
-    fontSize: 15,
-    lineHeight: 22,
-    color: brand.muted,
+  adminBadgeText: {
+    fontSize: 11,
+    fontWeight: '800',
+    color: brand.accent,
+    letterSpacing: 0.5,
   },
   error: {
     fontSize: 15,

@@ -9,8 +9,10 @@ import {
   View,
 } from 'react-native';
 
+import { Card } from '@/components/ui/Card';
 import { PrimaryButton } from '@/components/ui/Screen';
 import { brand } from '@/constants/brand';
+import { border, radius, spacing } from '@/constants/theme';
 import {
   useCreateEventComment,
   useDeleteEventComment,
@@ -49,7 +51,7 @@ export function SessionComments({ eventId }: { eventId: string }) {
       <Text style={styles.sectionTitle}>Comments</Text>
 
       {isLoading ? (
-        <ActivityIndicator color={brand.green700} style={styles.loader} />
+        <ActivityIndicator color={brand.accent} style={styles.loader} />
       ) : error ? (
         <Text style={styles.errorText}>Could not load comments.</Text>
       ) : comments?.length === 0 ? (
@@ -61,20 +63,24 @@ export function SessionComments({ eventId }: { eventId: string }) {
             deleteComment.isPending && deleteComment.variables === comment.id;
 
           return (
-            <View key={comment.id} style={styles.commentCard}>
-              <View style={styles.commentHeader}>
-                <Text style={styles.authorName}>{comment.display_name}</Text>
-                <Text style={styles.timestamp}>{formatRelativeTime(comment.created_at)}</Text>
-              </View>
-              <Text style={styles.commentBody}>{comment.body}</Text>
-              {isOwn && !comment.id.startsWith('optimistic-') ? (
-                <Pressable
-                  disabled={isDeleting}
-                  onPress={() => deleteComment.mutate(comment.id)}
-                  style={styles.deleteLink}>
-                  <Text style={styles.deleteLinkText}>{isDeleting ? 'Deleting…' : 'Delete'}</Text>
-                </Pressable>
-              ) : null}
+            <View key={comment.id} style={styles.commentWrapper}>
+              <Card>
+                <View style={styles.commentHeader}>
+                  <Text style={styles.authorName}>{comment.display_name}</Text>
+                  <Text style={styles.timestamp}>{formatRelativeTime(comment.created_at)}</Text>
+                </View>
+                <Text style={styles.commentBody}>{comment.body}</Text>
+                {isOwn && !comment.id.startsWith('optimistic-') ? (
+                  <Pressable
+                    disabled={isDeleting}
+                    onPress={() => deleteComment.mutate(comment.id)}
+                    style={styles.deleteLink}>
+                    <Text style={styles.deleteLinkText}>
+                      {isDeleting ? 'Deleting…' : 'Delete'}
+                    </Text>
+                  </Pressable>
+                ) : null}
+              </Card>
             </View>
           );
         })
@@ -103,41 +109,36 @@ export function SessionComments({ eventId }: { eventId: string }) {
 
 const styles = StyleSheet.create({
   container: {
-    marginTop: 8,
+    marginTop: spacing.sm,
   },
   sectionTitle: {
     fontSize: 18,
     fontWeight: '700',
     color: brand.text,
-    marginBottom: 12,
+    marginBottom: spacing.md,
   },
   loader: {
-    marginVertical: 12,
+    marginVertical: spacing.md,
   },
   emptyText: {
     fontSize: 15,
     color: brand.muted,
-    marginBottom: 16,
+    marginBottom: spacing.lg,
   },
   errorText: {
     fontSize: 14,
     color: brand.danger,
-    marginBottom: 8,
+    marginBottom: spacing.sm,
   },
-  commentCard: {
-    backgroundColor: brand.white,
-    borderRadius: 12,
-    padding: 14,
-    borderWidth: 1,
-    borderColor: '#E9ECEF',
-    marginBottom: 10,
-    gap: 6,
+  commentWrapper: {
+    marginBottom: spacing.sm,
   },
   commentHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    gap: 8,
+    gap: spacing.sm,
+    marginBottom: spacing.xs,
   },
   authorName: {
     fontSize: 14,
@@ -156,7 +157,8 @@ const styles = StyleSheet.create({
   },
   deleteLink: {
     alignSelf: 'flex-start',
-    paddingVertical: 2,
+    paddingVertical: spacing.xs,
+    marginTop: spacing.xs,
   },
   deleteLinkText: {
     fontSize: 13,
@@ -164,16 +166,16 @@ const styles = StyleSheet.create({
     color: brand.danger,
   },
   composer: {
-    marginTop: 8,
-    gap: 8,
+    marginTop: spacing.sm,
+    gap: spacing.sm,
   },
   input: {
-    backgroundColor: brand.white,
-    borderWidth: 1,
-    borderColor: '#DEE2E6',
-    borderRadius: 12,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
+    backgroundColor: brand.surface,
+    borderWidth: border.width,
+    borderColor: brand.borderStrong,
+    borderRadius: radius.md,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.md,
     fontSize: 16,
     color: brand.text,
     minHeight: 88,

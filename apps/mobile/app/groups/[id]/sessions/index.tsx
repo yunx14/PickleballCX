@@ -8,9 +8,11 @@ import {
   View,
 } from 'react-native';
 
+import { EmptyState } from '@/components/ui/EmptyState';
 import { SessionCard } from '@/components/ui/SessionCard';
 import { PrimaryButton } from '@/components/ui/Screen';
 import { brand } from '@/constants/brand';
+import { spacing } from '@/constants/theme';
 import { useGroupEvents } from '@/hooks/useEvents';
 import { newSessionRoute, sessionRoute } from '@/lib/routes';
 
@@ -22,7 +24,7 @@ export default function GroupSessionsScreen() {
   if (isLoading) {
     return (
       <View style={styles.centered}>
-        <ActivityIndicator size="large" color={brand.green700} />
+        <ActivityIndicator size="large" color={brand.accent} />
       </View>
     );
   }
@@ -44,13 +46,10 @@ export default function GroupSessionsScreen() {
         refreshControl={<RefreshControl refreshing={isRefetching} onRefresh={() => void refetch()} />}
         contentContainerStyle={styles.listContent}
         ListEmptyComponent={
-          <View style={styles.emptyCard}>
-            <Text style={styles.emptyTitle}>No upcoming sessions</Text>
-            <Text style={styles.emptyBody}>
-              Schedule your first pickleball session — pick a court, time, and session type so your
-              group can RSVP.
-            </Text>
-          </View>
+          <EmptyState
+            title="No upcoming sessions"
+            body="Schedule your first pickleball session — pick a court, time, and session type so your group can RSVP."
+          />
         }
         renderItem={({ item }) => (
           <SessionCard event={item} onPress={() => router.push(sessionRoute(item.id))} />
@@ -71,51 +70,32 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: brand.sand,
+    backgroundColor: brand.background,
   },
   container: {
     flex: 1,
-    backgroundColor: brand.sand,
-    padding: 20,
+    backgroundColor: brand.background,
+    padding: spacing.xl,
   },
   listContainer: {
     flex: 1,
-    backgroundColor: brand.sand,
+    backgroundColor: brand.background,
   },
   listContent: {
-    padding: 20,
-    paddingBottom: 16,
+    padding: spacing.xl,
+    paddingBottom: spacing.lg,
     flexGrow: 1,
   },
   footer: {
-    padding: 20,
-    paddingTop: 12,
+    padding: spacing.xl,
+    paddingTop: spacing.md,
     borderTopWidth: 1,
-    borderTopColor: '#E9ECEF',
-    backgroundColor: brand.sand,
-  },
-  emptyCard: {
-    backgroundColor: brand.white,
-    borderRadius: 16,
-    padding: 20,
-    borderWidth: 1,
-    borderColor: '#E9ECEF',
-    marginTop: 8,
-  },
-  emptyTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: brand.text,
-    marginBottom: 8,
-  },
-  emptyBody: {
-    fontSize: 15,
-    lineHeight: 22,
-    color: brand.muted,
+    borderTopColor: brand.border,
+    backgroundColor: brand.surfaceElevated,
   },
   error: {
     fontSize: 15,
     color: brand.danger,
-    marginBottom: 16,
+    marginBottom: spacing.lg,
   },
 });
