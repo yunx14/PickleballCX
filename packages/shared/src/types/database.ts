@@ -8,6 +8,8 @@ import type {
   GroupMemberRole,
   PlayFormat,
   RankedPreference,
+  MatchRequestStatus,
+  SessionInviteStatus,
 } from '../constants';
 
 export type Json =
@@ -402,6 +404,171 @@ export interface Database {
           },
         ];
       };
+      match_requests: {
+        Row: {
+          id: string;
+          from_user_id: string;
+          to_user_id: string;
+          status: MatchRequestStatus;
+          message: string | null;
+          created_at: string;
+          responded_at: string | null;
+        };
+        Insert: {
+          id?: string;
+          from_user_id: string;
+          to_user_id: string;
+          status?: MatchRequestStatus;
+          message?: string | null;
+          created_at?: string;
+          responded_at?: string | null;
+        };
+        Update: {
+          id?: string;
+          from_user_id?: string;
+          to_user_id?: string;
+          status?: MatchRequestStatus;
+          message?: string | null;
+          created_at?: string;
+          responded_at?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'match_requests_from_user_id_fkey';
+            columns: ['from_user_id'];
+            isOneToOne: false;
+            referencedRelation: 'profiles';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'match_requests_to_user_id_fkey';
+            columns: ['to_user_id'];
+            isOneToOne: false;
+            referencedRelation: 'profiles';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
+      player_conversations: {
+        Row: {
+          id: string;
+          match_request_id: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          match_request_id: string;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          match_request_id?: string;
+          created_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'player_conversations_match_request_id_fkey';
+            columns: ['match_request_id'];
+            isOneToOne: true;
+            referencedRelation: 'match_requests';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
+      player_messages: {
+        Row: {
+          id: string;
+          conversation_id: string;
+          sender_id: string;
+          body: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          conversation_id: string;
+          sender_id: string;
+          body: string;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          conversation_id?: string;
+          sender_id?: string;
+          body?: string;
+          created_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'player_messages_conversation_id_fkey';
+            columns: ['conversation_id'];
+            isOneToOne: false;
+            referencedRelation: 'player_conversations';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'player_messages_sender_id_fkey';
+            columns: ['sender_id'];
+            isOneToOne: false;
+            referencedRelation: 'profiles';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
+      session_invites: {
+        Row: {
+          id: string;
+          event_id: string;
+          invited_user_id: string;
+          invited_by: string;
+          status: SessionInviteStatus;
+          message: string | null;
+          created_at: string;
+          responded_at: string | null;
+        };
+        Insert: {
+          id?: string;
+          event_id: string;
+          invited_user_id: string;
+          invited_by: string;
+          status?: SessionInviteStatus;
+          message?: string | null;
+          created_at?: string;
+          responded_at?: string | null;
+        };
+        Update: {
+          id?: string;
+          event_id?: string;
+          invited_user_id?: string;
+          invited_by?: string;
+          status?: SessionInviteStatus;
+          message?: string | null;
+          created_at?: string;
+          responded_at?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'session_invites_event_id_fkey';
+            columns: ['event_id'];
+            isOneToOne: false;
+            referencedRelation: 'events';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'session_invites_invited_user_id_fkey';
+            columns: ['invited_user_id'];
+            isOneToOne: false;
+            referencedRelation: 'profiles';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'session_invites_invited_by_fkey';
+            columns: ['invited_by'];
+            isOneToOne: false;
+            referencedRelation: 'profiles';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
       push_tokens: {
         Row: {
           id: string;
@@ -479,9 +646,15 @@ export interface Database {
       group_member_role: GroupMemberRole;
       play_format: PlayFormat;
       ranked_preference: RankedPreference;
+      match_request_status: MatchRequestStatus;
+      session_invite_status: SessionInviteStatus;
     };
     CompositeTypes: Record<string, never>;
   };
 }
 
 export type Profile = Database['public']['Tables']['profiles']['Row'];
+export type MatchRequest = Database['public']['Tables']['match_requests']['Row'];
+export type PlayerConversation = Database['public']['Tables']['player_conversations']['Row'];
+export type PlayerMessage = Database['public']['Tables']['player_messages']['Row'];
+export type SessionInvite = Database['public']['Tables']['session_invites']['Row'];

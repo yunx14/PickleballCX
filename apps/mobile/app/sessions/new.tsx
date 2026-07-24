@@ -11,16 +11,28 @@ import { brand } from '@/constants/brand';
 import { useCourts } from '@/hooks/useCourts';
 import { useCreateEvent } from '@/hooks/useEvents';
 import { useGroups } from '@/hooks/useGroups';
-import { courtsRoute, sessionRoute } from '@/lib/routes';
+import { useMatchRequests } from '@/hooks/useMatchRequests';
+import { useCreateSessionInvite } from '@/hooks/useSessionInvites';
+import { courtsRoute, playerRequestsRoute, sessionRoute } from '@/lib/routes';
 
 export default function NewSessionScreen() {
-  const { groupId: presetGroupId } = useLocalSearchParams<{ groupId?: string }>();
+  const { groupId: presetGroupId, inviteMatchRequestId } = useLocalSearchParams<{
+    groupId?: string;
+    inviteMatchRequestId?: string;
+  }>();
   const [selectedGroupId, setSelectedGroupId] = useState<string | null>(presetGroupId ?? null);
   const [limitToGroup, setLimitToGroup] = useState(!!presetGroupId);
   const { data: courts, isLoading: courtsLoading } = useCourts();
   const { data: groups } = useGroups();
   const createEvent = useCreateEvent();
+  const createSessionInvite = useCreateSessionInvite();
+  const { data: matchRequests } = useMatchRequests();
   const [formError, setFormError] = useState<string>();
+
+  const inviteTarget = useMemo(() => {
+    if (!inviteMatchRequestId) return null;
+    return (matchRequests ?? []).find((request) => request.id === inviteMatchRequestId) ?? null;
+  }, [inviteMatchRequestId, matchRequests]);
 
   const selectedGroup = useMemo(
     () => groups?.find((group) => group.id === selectedGroupId) ?? null,
@@ -66,6 +78,16 @@ export default function NewSessionScreen() {
           skillMax: values.skillMax,
           description: values.description,
         });
+
+        if (inviteTarget?.status === 'accepted') {
+          await createSessionInvite.mutateAsync({
+            eventId: id,
+            invitedUserId: inviteTarget.other_user_id,
+          });
+          router.replace(playerRequestsRoute);
+          return;
+        }
+
         router.push(sessionRoute(id));
       } catch (error) {
         setFormError(error instanceof Error ? error.message : 'Could not create session');
@@ -100,7 +122,13 @@ export default function NewSessionScreen() {
 
   return (
     <ScrollView contentContainerStyle={{ flexGrow: 1 }} keyboardShouldPersistTaps="handled">
-      <FormScreenContainer>
+        <FormScreenContainer>
+        {inviteTarget ? (
+          <Subtitle>
+            Create a session for {inviteTarget.other_display_name}. We&apos;ll send them an invite
+            when you save.
+          </Subtitle>
+        ) : null}
         <View style={styles.groupSection}>
           <Text style={styles.sectionTitle}>Visibility</Text>
           <Pressable

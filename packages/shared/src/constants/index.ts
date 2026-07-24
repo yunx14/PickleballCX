@@ -25,6 +25,12 @@ export type PlayFormat = (typeof PLAY_FORMATS)[number];
 export const RANKED_PREFERENCES = ['ranked', 'unranked', 'either'] as const;
 export type RankedPreference = (typeof RANKED_PREFERENCES)[number];
 
+export const MATCH_REQUEST_STATUSES = ['pending', 'accepted', 'declined'] as const;
+export type MatchRequestStatus = (typeof MATCH_REQUEST_STATUSES)[number];
+
+export const SESSION_INVITE_STATUSES = ['pending', 'accepted', 'declined'] as const;
+export type SessionInviteStatus = (typeof SESSION_INVITE_STATUSES)[number];
+
 export const SKILL_LEVEL_LABELS: Record<SkillLevel, string> = {
   beginner: 'Beginner',
   intermediate: 'Intermediate',
@@ -60,6 +66,18 @@ export const RANKED_PREFERENCE_LABELS: Record<RankedPreference, string> = {
   ranked: 'Ranked',
   unranked: 'Unranked',
   either: 'Either',
+};
+
+export const MATCH_REQUEST_STATUS_LABELS: Record<MatchRequestStatus, string> = {
+  pending: 'Pending',
+  accepted: 'Accepted',
+  declined: 'Declined',
+};
+
+export const SESSION_INVITE_STATUS_LABELS: Record<SessionInviteStatus, string> = {
+  pending: 'Pending',
+  accepted: 'Accepted',
+  declined: 'Declined',
 };
 
 export const APP_NAME = 'PickleballCX';

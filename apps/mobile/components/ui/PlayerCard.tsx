@@ -3,13 +3,13 @@ import {
   RANKED_PREFERENCE_LABELS,
   SKILL_LEVEL_LABELS,
   type PlayFormat,
-  type RankedPreference,
   type SkillLevel,
 } from '@pickleballcx/shared';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { brand } from '@/constants/brand';
 import { border, radius, spacing } from '@/constants/theme';
+import type { PlayerMatchAction } from '@/lib/match-request-state';
 import type { DiscoverPlayerRow } from '@/lib/player-filters';
 import { computeMatchFit, formatPlayerLocation } from '@/lib/player-filters';
 import type { DiscoveryRadiusMi } from '@/lib/event-filters';
@@ -19,11 +19,21 @@ export function PlayerCard({
   viewerSkill,
   viewerFormat,
   radiusMi,
+  matchAction,
+  actionLoading,
+  onRequestMatch,
+  onRespond,
+  onMessage,
 }: {
   player: DiscoverPlayerRow;
   viewerSkill: SkillLevel | null;
   viewerFormat: PlayFormat;
   radiusMi: DiscoveryRadiusMi;
+  matchAction: PlayerMatchAction;
+  actionLoading?: boolean;
+  onRequestMatch: () => void;
+  onRespond: () => void;
+  onMessage: () => void;
 }) {
   const initials = player.display_name
     .split(' ')
@@ -37,6 +47,50 @@ export function PlayerCard({
     player,
     radiusMi,
   );
+
+  const renderAction = () => {
+    if (actionLoading) {
+      return (
+        <View style={styles.actionLoading}>
+          <ActivityIndicator color={brand.accent} size="small" />
+        </View>
+      );
+    }
+
+    switch (matchAction.kind) {
+      case 'respond':
+        return (
+          <Pressable
+            onPress={onRespond}
+            style={({ pressed }) => [styles.actionPrimary, pressed && styles.actionPressed]}>
+            <Text style={styles.actionPrimaryText}>Respond</Text>
+          </Pressable>
+        );
+      case 'pending_outgoing':
+        return (
+          <View style={styles.actionPending}>
+            <Text style={styles.actionPendingText}>Pending…</Text>
+          </View>
+        );
+      case 'connected':
+        return (
+          <Pressable
+            onPress={onMessage}
+            style={({ pressed }) => [styles.actionPrimary, pressed && styles.actionPressed]}>
+            <Text style={styles.actionPrimaryText}>Message</Text>
+          </Pressable>
+        );
+      case 'request':
+      default:
+        return (
+          <Pressable
+            onPress={onRequestMatch}
+            style={({ pressed }) => [styles.actionOutline, pressed && styles.actionPressed]}>
+            <Text style={styles.actionOutlineText}>Request match</Text>
+          </Pressable>
+        );
+    }
+  };
 
   return (
     <View style={styles.card}>
@@ -61,9 +115,7 @@ export function PlayerCard({
         </View>
       </View>
 
-      <Pressable disabled style={styles.connectButton}>
-        <Text style={styles.connectButtonText}>Connect</Text>
-      </Pressable>
+      <View style={styles.actionRow}>{renderAction()}</View>
     </View>
   );
 }
@@ -187,18 +239,63 @@ const styles = StyleSheet.create({
     color: brand.muted,
     textAlign: 'right',
   },
-  connectButton: {
-    alignSelf: 'flex-end',
+  actionRow: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+  },
+  actionOutline: {
+    borderWidth: 1,
+    borderColor: brand.accent,
+    borderRadius: radius.pill,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.sm,
+  },
+  actionOutlineText: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: brand.accent,
+  },
+  actionPrimary: {
+    backgroundColor: brand.accent,
+    borderRadius: radius.pill,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.sm,
+  },
+  actionPrimaryText: {
+    fontSize: 14,
+    fontWeight: '800',
+    color: brand.accentText,
+  },
+  actionPending: {
     borderWidth: 1,
     borderColor: brand.borderStrong,
     borderRadius: radius.pill,
     paddingHorizontal: spacing.lg,
     paddingVertical: spacing.sm,
-    opacity: 0.45,
   },
-  connectButtonText: {
+  actionPendingText: {
     fontSize: 14,
     fontWeight: '700',
     color: brand.muted,
+  },
+  actionConnected: {
+    borderWidth: 1,
+    borderColor: brand.accent,
+    backgroundColor: brand.accentSurface,
+    borderRadius: radius.pill,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.sm,
+  },
+  actionConnectedText: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: brand.accent,
+  },
+  actionLoading: {
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.sm,
+  },
+  actionPressed: {
+    opacity: 0.85,
   },
 });

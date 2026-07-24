@@ -17,16 +17,24 @@ import { FilterDropdown, type FilterDropdownOption } from '@/components/ui/Filte
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import { brand } from '@/constants/brand';
 import { spacing } from '@/constants/theme';
+import {
+  useCreateMatchRequest,
+  useIncomingMatchRequestCount,
+  useMatchRequests,
+} from '@/hooks/useMatchRequests';
+import { useIncomingSessionInviteCount } from '@/hooks/useSessionInvites';
 import { useDiscoverPlayers } from '@/hooks/useDiscoverPlayers';
 import { useUserLocation } from '@/hooks/useUserLocation';
 import type { DiscoveryRadiusMi } from '@/lib/event-filters';
 import { DISCOVERY_RADIUS_OPTIONS_MI } from '@/lib/event-filters';
+import { getPlayerMatchAction } from '@/lib/match-request-state';
 import {
   FORMAT_FILTER_ANY,
   SKILL_FILTER_ANY,
   type FormatFilter,
   type SkillFilter,
 } from '@/lib/player-filters';
+import { playerMessageRoute, playerRequestsRoute } from '@/lib/routes';
 import {
   PLAY_FORMATS,
   PLAY_FORMAT_LABELS,
@@ -55,11 +63,13 @@ const DISTANCE_OPTIONS: FilterDropdownOption<DiscoveryRadiusMi>[] =
   }));
 
 export default function PlayersScreen() {
-  const { profile } = useAuth();
+  const { profile, session } = useAuth();
   const [search, setSearch] = useState('');
   const [skillFilter, setSkillFilter] = useState<SkillFilter>(SKILL_FILTER_ANY);
   const [formatFilter, setFormatFilter] = useState<FormatFilter>(FORMAT_FILTER_ANY);
   const [radiusMi, setRadiusMi] = useState<DiscoveryRadiusMi>(25);
+  const [actionError, setActionError] = useState<string>();
+  const [loadingPlayerId, setLoadingPlayerId] = useState<string | null>(null);
 
   const {
     data: locationResult,
@@ -90,6 +100,12 @@ export default function PlayersScreen() {
     error,
   } = useDiscoverPlayers(discoverFilter);
 
+  const { data: matchRequests, refetch: refetchMatchRequests } = useMatchRequests();
+  const createMatchRequest = useCreateMatchRequest();
+  const incomingCount = useIncomingMatchRequestCount();
+  const incomingInviteCount = useIncomingSessionInviteCount();
+  const pendingActivityCount = incomingCount + incomingInviteCount;
+
   const isLoading = playersLoading || locationLoading;
 
   const locationMessage = useMemo(() => {
@@ -109,6 +125,26 @@ export default function PlayersScreen() {
   const handleRefresh = () => {
     void refetchLocation();
     void refetchPlayers();
+    void refetchMatchRequests();
+  };
+
+  const handleRequestMatch = async (playerId: string) => {
+    setActionError(undefined);
+    setLoadingPlayerId(playerId);
+
+    try {
+      await createMatchRequest.mutateAsync({ toUserId: playerId });
+    } catch (requestError) {
+      const message =
+        requestError instanceof Error ? requestError.message : 'Could not send match request';
+      setActionError(
+        message.includes('match_requests_one_pending_pair')
+          ? 'A match request is already pending with this player.'
+          : message,
+      );
+    } finally {
+      setLoadingPlayerId(null);
+    }
   };
 
   if (isLoading) {
@@ -136,6 +172,22 @@ export default function PlayersScreen() {
               subtitle={locationMessage}
             />
 
+            {pendingActivityCount > 0 ? (
+              <Pressable
+                style={styles.incomingBanner}
+                onPress={() => router.push(playerRequestsRoute)}>
+                <Text style={styles.incomingBannerTitle}>
+                  {pendingActivityCount} pending request{pendingActivityCount === 1 ? '' : 's'}{' '}
+                  {incomingInviteCount > 0 && incomingCount > 0
+                    ? `(matches + invites)`
+                    : incomingInviteCount > 0
+                      ? '(session invites)'
+                      : '(match requests)'}
+                </Text>
+                <Text style={styles.incomingBannerLink}>Review →</Text>
+              </Pressable>
+            ) : null}
+
             {profileIncomplete ? (
               <Pressable
                 style={styles.profilePrompt}
@@ -147,6 +199,8 @@ export default function PlayersScreen() {
                 <Text style={styles.profilePromptLink}>Go to Profile →</Text>
               </Pressable>
             ) : null}
+
+            {actionError ? <Text style={styles.actionError}>{actionError}</Text> : null}
 
             <View style={styles.panel}>
               <View style={styles.panelHeader}>
@@ -206,14 +260,31 @@ export default function PlayersScreen() {
             />
           )
         }
-        renderItem={({ item }) => (
-          <PlayerCard
-            player={item}
-            viewerSkill={profile?.skill_level ?? null}
-            viewerFormat={profile?.play_format ?? 'either'}
-            radiusMi={radiusMi}
-          />
-        )}
+        renderItem={({ item }) => {
+          const matchAction = getPlayerMatchAction(
+            item.id,
+            session?.user.id ?? '',
+            matchRequests ?? [],
+          );
+
+          return (
+            <PlayerCard
+              player={item}
+              viewerSkill={profile?.skill_level ?? null}
+              viewerFormat={profile?.play_format ?? 'either'}
+              radiusMi={radiusMi}
+              matchAction={matchAction}
+              actionLoading={loadingPlayerId === item.id}
+              onRequestMatch={() => void handleRequestMatch(item.id)}
+              onRespond={() => router.push(playerRequestsRoute)}
+              onMessage={() => {
+                if (matchAction.kind === 'connected') {
+                  router.push(playerMessageRoute(matchAction.requestId));
+                }
+              }}
+            />
+          );
+        }}
         ItemSeparatorComponent={() => <View style={styles.separator} />}
       />
     </View>
@@ -241,6 +312,24 @@ const styles = StyleSheet.create({
     paddingBottom: spacing.md,
     gap: spacing.sm,
   },
+  incomingBanner: {
+    backgroundColor: brand.accentSurface,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: brand.accent,
+    padding: spacing.lg,
+    gap: spacing.xs,
+  },
+  incomingBannerTitle: {
+    fontSize: 15,
+    fontWeight: '800',
+    color: brand.accent,
+  },
+  incomingBannerLink: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: brand.accent,
+  },
   profilePrompt: {
     backgroundColor: brand.accentSurface,
     borderRadius: 12,
@@ -265,6 +354,10 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: brand.accent,
     marginTop: spacing.xs,
+  },
+  actionError: {
+    fontSize: 14,
+    color: brand.danger,
   },
   panel: {
     backgroundColor: brand.surface,

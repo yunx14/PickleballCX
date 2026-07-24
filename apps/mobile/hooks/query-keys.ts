@@ -36,4 +36,19 @@ export const queryKeys = {
     discover: (filter?: Record<string, unknown>) =>
       ['players', 'discover', filter ?? {}] as const,
   },
+  matchRequests: {
+    all: (userId?: string) => ['matchRequests', userId] as const,
+  },
+  playerMessages: {
+    conversation: (conversationId?: string) =>
+      ['playerMessages', 'conversation', conversationId] as const,
+    byMatchRequest: (matchRequestId?: string) =>
+      ['playerMessages', 'matchRequest', matchRequestId] as const,
+  },
+  sessionInvites: {
+    all: (userId?: string) => ['sessionInvites', userId] as const,
+  },
+  hostSessions: {
+    upcoming: (userId?: string) => ['hostSessions', 'upcoming', userId] as const,
+  },
 };

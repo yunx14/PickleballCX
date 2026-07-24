@@ -49,3 +49,17 @@ export const termsOfServiceRoute = '/legal/terms' as Href;
 
 export const createGroupRoute = '/(tabs)/groups/create' as Href;
 export const joinGroupRoute = '/(tabs)/groups/join' as Href;
+
+export const playerRequestsRoute = '/(tabs)/players/requests' as Href;
+
+export function playerMessageRoute(matchRequestId: string): Href {
+  return `/(tabs)/players/messages/${matchRequestId}` as Href;
+}
+
+export function playerInviteRoute(matchRequestId: string): Href {
+  return `/(tabs)/players/invite/${matchRequestId}` as Href;
+}
+
+export function newSessionWithInviteRoute(matchRequestId: string): Href {
+  return `/sessions/new?inviteMatchRequestId=${matchRequestId}` as Href;
+}

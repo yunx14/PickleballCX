@@ -59,6 +59,7 @@ export default function TabLayout() {
         name="players"
         options={{
           title: 'Players',
+          headerShown: false,
           tabBarIcon: ({ color }) => (
             <SymbolView
               name={{ ios: 'person.2.fill', android: 'groups', web: 'groups' }}

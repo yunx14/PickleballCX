@@ -91,6 +91,18 @@ async function buildNotifications(
     return buildAnnouncementNotifications(supabase, record);
   }
 
+  if (table === 'match_requests') {
+    return buildMatchRequestNotifications(supabase, payload, record);
+  }
+
+  if (table === 'player_messages') {
+    return buildPlayerMessageNotifications(supabase, record);
+  }
+
+  if (table === 'session_invites') {
+    return buildSessionInviteNotifications(supabase, record);
+  }
+
   return [];
 }
 
@@ -245,6 +257,175 @@ async function buildAnnouncementNotifications(
     title: title || `${groupName} announcement`,
     body: preview || 'New group announcement',
     data: { groupId, screen: 'announcements' },
+  }));
+}
+
+async function buildMatchRequestNotifications(
+  supabase: ReturnType<typeof createClient>,
+  payload: WebhookPayload,
+  record: Record<string, unknown>,
+): Promise<PushMessage[]> {
+  const requestId = String(record.id ?? '');
+  const fromUserId = String(record.from_user_id ?? '');
+  const toUserId = String(record.to_user_id ?? '');
+
+  if (!requestId || !fromUserId || !toUserId) return [];
+
+  const { data: fromProfile, error: fromError } = await supabase
+    .from('profiles')
+    .select('display_name')
+    .eq('id', fromUserId)
+    .maybeSingle();
+
+  if (fromError) {
+    console.error('Failed to load sender profile for match push', fromError.message);
+    return [];
+  }
+
+  const senderName = fromProfile?.display_name?.trim() || 'A player';
+
+  if (payload.type === 'INSERT') {
+    const tokens = await fetchTokensForUsers(supabase, [toUserId]);
+    const preview = String(record.message ?? '').trim();
+    const body = preview
+      ? `${senderName} wants to match: ${preview.length > 80 ? `${preview.slice(0, 77)}…` : preview}`
+      : `${senderName} sent you a match request`;
+
+    return tokens.map((token) => ({
+      to: token,
+      title: 'New match request',
+      body,
+      data: { requestId, screen: 'match_requests' },
+    }));
+  }
+
+  const { data: toProfile, error: toError } = await supabase
+    .from('profiles')
+    .select('display_name')
+    .eq('id', toUserId)
+    .maybeSingle();
+
+  if (toError) {
+    console.error('Failed to load recipient profile for match push', toError.message);
+    return [];
+  }
+
+  const recipientName = toProfile?.display_name?.trim() || 'A player';
+  const tokens = await fetchTokensForUsers(supabase, [fromUserId]);
+
+  return tokens.map((token) => ({
+    to: token,
+    title: 'Match accepted',
+    body: `${recipientName} accepted your match request`,
+    data: { requestId, screen: 'match_requests' },
+  }));
+}
+
+async function buildPlayerMessageNotifications(
+  supabase: ReturnType<typeof createClient>,
+  record: Record<string, unknown>,
+): Promise<PushMessage[]> {
+  const conversationId = String(record.conversation_id ?? '');
+  const senderId = String(record.sender_id ?? '');
+  const body = String(record.body ?? '').trim();
+
+  if (!conversationId || !senderId) return [];
+
+  const { data: conversation, error: conversationError } = await supabase
+    .from('player_conversations')
+    .select('match_request_id')
+    .eq('id', conversationId)
+    .maybeSingle();
+
+  if (conversationError || !conversation?.match_request_id) {
+    console.error('Failed to load conversation for message push', conversationError?.message);
+    return [];
+  }
+
+  const { data: matchRequest, error: matchError } = await supabase
+    .from('match_requests')
+    .select('from_user_id, to_user_id')
+    .eq('id', conversation.match_request_id)
+    .maybeSingle();
+
+  if (matchError || !matchRequest) {
+    console.error('Failed to load match request for message push', matchError?.message);
+    return [];
+  }
+
+  const recipientId =
+    matchRequest.from_user_id === senderId ? matchRequest.to_user_id : matchRequest.from_user_id;
+
+  const { data: senderProfile, error: senderError } = await supabase
+    .from('profiles')
+    .select('display_name')
+    .eq('id', senderId)
+    .maybeSingle();
+
+  if (senderError) {
+    console.error('Failed to load sender profile for message push', senderError.message);
+    return [];
+  }
+
+  const senderName = senderProfile?.display_name?.trim() || 'A player';
+  const preview = body.length > 80 ? `${body.slice(0, 77)}…` : body;
+  const tokens = await fetchTokensForUsers(supabase, [recipientId]);
+
+  return tokens.map((token) => ({
+    to: token,
+    title: senderName,
+    body: preview || 'Sent you a message',
+    data: {
+      matchRequestId: conversation.match_request_id,
+      screen: 'player_message',
+    },
+  }));
+}
+
+async function buildSessionInviteNotifications(
+  supabase: ReturnType<typeof createClient>,
+  record: Record<string, unknown>,
+): Promise<PushMessage[]> {
+  const inviteId = String(record.id ?? '');
+  const eventId = String(record.event_id ?? '');
+  const invitedUserId = String(record.invited_user_id ?? '');
+  const invitedBy = String(record.invited_by ?? '');
+
+  if (!inviteId || !eventId || !invitedUserId || !invitedBy) return [];
+
+  const { data: inviterProfile, error: inviterError } = await supabase
+    .from('profiles')
+    .select('display_name')
+    .eq('id', invitedBy)
+    .maybeSingle();
+
+  if (inviterError) {
+    console.error('Failed to load inviter profile for session invite push', inviterError.message);
+    return [];
+  }
+
+  const { data: event, error: eventError } = await supabase
+    .from('events')
+    .select('starts_at, courts ( name )')
+    .eq('id', eventId)
+    .maybeSingle();
+
+  if (eventError) {
+    console.error('Failed to load event for session invite push', eventError.message);
+    return [];
+  }
+
+  const court = event?.courts && !Array.isArray(event.courts) ? event.courts : null;
+  const courtName = court?.name?.trim() || 'a session';
+  const inviterName = inviterProfile?.display_name?.trim() || 'A player';
+  const when = event?.starts_at ? formatSessionTime(String(event.starts_at)) : 'soon';
+  const tokens = await fetchTokensForUsers(supabase, [invitedUserId]);
+
+  return tokens.map((token) => ({
+    to: token,
+    title: 'Session invite',
+    body: `${inviterName} invited you to ${courtName} · ${when}`,
+    data: { inviteId, eventId, screen: 'session_invite' },
   }));
 }
 
