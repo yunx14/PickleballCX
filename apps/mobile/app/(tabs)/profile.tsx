@@ -1,9 +1,16 @@
 import { zodResolver } from '@hookform/resolvers/zod';
-import { profileSetupSchema, type ProfileSetupInput } from '@pickleballcx/shared';
+import {
+  PLAY_FORMATS,
+  PLAY_FORMAT_LABELS,
+  RANKED_PREFERENCES,
+  RANKED_PREFERENCE_LABELS,
+  profileEditSchema,
+  type ProfileEditInput,
+} from '@pickleballcx/shared';
 import { router } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
-import { Pressable, ScrollView, StyleSheet, Text, View, Linking } from 'react-native';
+import { Linking, Pressable, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
 
 import { Card } from '@/components/ui/Card';
 import {
@@ -14,11 +21,12 @@ import {
 } from '@/components/ui/Screen';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import { SkillPicker } from '@/components/ui/SkillPicker';
+import { EnumPicker } from '@/components/ui/EnumPicker';
 import { brand } from '@/constants/brand';
 import { SUPPORT_EMAIL, supportMailtoUrl } from '@/constants/support';
 import { spacing, typography } from '@/constants/theme';
 import { courtsRoute, privacyPolicyRoute, termsOfServiceRoute } from '@/lib/routes';
-import { supabase } from '@/lib/supabase';
+import { saveProfileDiscoveryFields } from '@/lib/profile-save';
 import { useAuth } from '@/providers/AuthProvider';
 
 export default function ProfileScreen() {
@@ -32,11 +40,16 @@ export default function ProfileScreen() {
     handleSubmit,
     reset,
     formState: { isSubmitting, errors, isDirty },
-  } = useForm<ProfileSetupInput>({
-    resolver: zodResolver(profileSetupSchema),
+  } = useForm<ProfileEditInput>({
+    resolver: zodResolver(profileEditSchema),
     defaultValues: {
-      displayName: profile?.display_name ?? '',
-      skillLevel: profile?.skill_level ?? undefined,
+      displayName: '',
+      skillLevel: undefined,
+      city: '',
+      playFormat: 'either',
+      rankedPreference: 'either',
+      discoveryEnabled: true,
+      availableNow: false,
     },
   });
 
@@ -45,6 +58,11 @@ export default function ProfileScreen() {
     reset({
       displayName: profile.display_name?.trim() ? profile.display_name : '',
       skillLevel: profile.skill_level ?? undefined,
+      city: profile.city ?? '',
+      playFormat: profile.play_format ?? 'either',
+      rankedPreference: profile.ranked_preference ?? 'either',
+      discoveryEnabled: profile.discovery_enabled ?? true,
+      availableNow: profile.available_now ?? false,
     });
   }, [profile, reset]);
 
@@ -65,16 +83,9 @@ export default function ProfileScreen() {
       setFormError(undefined);
       setSaveMessage(undefined);
 
-      const { error } = await supabase
-        .from('profiles')
-        .update({
-          display_name: values.displayName.trim(),
-          skill_level: values.skillLevel,
-        })
-        .eq('id', profile.id);
-
-      if (error) {
-        setFormError(error.message);
+      const result = await saveProfileDiscoveryFields(profile.id, values);
+      if (result.error) {
+        setFormError(result.error);
         return;
       }
 
@@ -82,7 +93,7 @@ export default function ProfileScreen() {
       setSaveMessage('Profile saved.');
     },
     () => {
-      setFormError('Please enter a display name and pick your skill level.');
+      setFormError('Please fill in required fields.');
     },
   );
 
@@ -94,14 +105,14 @@ export default function ProfileScreen() {
         </View>
         <View style={styles.avatarMeta}>
           <Text style={styles.displayName}>{profile?.display_name ?? 'Player'}</Text>
-          <Text style={styles.skillLine}>Self-reported skill shows on RSVP lists</Text>
+          <Text style={styles.skillLine}>Shown on RSVP lists and Find players</Text>
         </View>
       </View>
 
       <ScreenHeader
         eyebrow="Account"
         title="Your profile"
-        subtitle="Update how your group sees you and your skill level."
+        subtitle="Update how other players and your groups see you."
       />
 
       <Card>
@@ -121,7 +132,15 @@ export default function ProfileScreen() {
       </Card>
 
       <ErrorText message={formError} />
-      <ErrorText message={errors.displayName?.message ?? errors.skillLevel?.message} />
+      <ErrorText
+        message={
+          errors.displayName?.message ??
+          errors.skillLevel?.message ??
+          errors.city?.message ??
+          errors.playFormat?.message ??
+          errors.rankedPreference?.message
+        }
+      />
       {saveMessage ? <Text style={styles.saveMessage}>{saveMessage}</Text> : null}
 
       <FieldLabel>Display name</FieldLabel>
@@ -141,6 +160,23 @@ export default function ProfileScreen() {
         )}
       />
 
+      <FieldLabel>City</FieldLabel>
+      <Controller
+        control={control}
+        name="city"
+        render={({ field: { onChange, value }, fieldState: { error } }) => (
+          <>
+            <TextField
+              value={value ?? ''}
+              onChangeText={onChange}
+              placeholder="Mobile, AL"
+              autoCapitalize="words"
+            />
+            <ErrorText message={error?.message} />
+          </>
+        )}
+      />
+
       <FieldLabel>Pickleball skill (self-reported)</FieldLabel>
       <Controller
         control={control}
@@ -150,6 +186,74 @@ export default function ProfileScreen() {
             <SkillPicker value={value} onChange={onChange} />
             <ErrorText message={error?.message} />
           </>
+        )}
+      />
+
+      <FieldLabel>Preferred format</FieldLabel>
+      <Controller
+        control={control}
+        name="playFormat"
+        render={({ field: { onChange, value } }) => (
+          <EnumPicker
+            options={PLAY_FORMATS}
+            labels={PLAY_FORMAT_LABELS}
+            value={value}
+            onChange={onChange}
+          />
+        )}
+      />
+
+      <FieldLabel>Ranked play preference</FieldLabel>
+      <Controller
+        control={control}
+        name="rankedPreference"
+        render={({ field: { onChange, value } }) => (
+          <EnumPicker
+            options={RANKED_PREFERENCES}
+            labels={RANKED_PREFERENCE_LABELS}
+            value={value}
+            onChange={onChange}
+          />
+        )}
+      />
+
+      <Controller
+        control={control}
+        name="discoveryEnabled"
+        render={({ field: { onChange, value } }) => (
+          <Pressable style={styles.toggleRow} onPress={() => onChange(!value)}>
+            <View style={styles.toggleCopy}>
+              <Text style={styles.toggleLabel}>Show me in Find players</Text>
+              <Text style={styles.toggleHint}>
+                Other players can discover your profile when this is on.
+              </Text>
+            </View>
+            <Switch
+              value={value}
+              onValueChange={onChange}
+              trackColor={{ false: brand.borderStrong, true: brand.accent }}
+            />
+          </Pressable>
+        )}
+      />
+
+      <Controller
+        control={control}
+        name="availableNow"
+        render={({ field: { onChange, value } }) => (
+          <Pressable style={styles.toggleRow} onPress={() => onChange(!value)}>
+            <View style={styles.toggleCopy}>
+              <Text style={styles.toggleLabel}>Available now</Text>
+              <Text style={styles.toggleHint}>
+                Shows a badge for the next 8 hours when you are looking to play.
+              </Text>
+            </View>
+            <Switch
+              value={value}
+              onValueChange={onChange}
+              trackColor={{ false: brand.borderStrong, true: brand.accent }}
+            />
+          </Pressable>
         )}
       />
 
@@ -255,6 +359,31 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '600',
     color: brand.accent,
+  },
+  toggleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: brand.surface,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: brand.border,
+    padding: spacing.lg,
+    gap: spacing.md,
+  },
+  toggleCopy: {
+    flex: 1,
+    gap: 4,
+  },
+  toggleLabel: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: brand.text,
+  },
+  toggleHint: {
+    fontSize: 13,
+    lineHeight: 18,
+    color: brand.muted,
   },
   legalLinks: {
     marginTop: spacing.sm,

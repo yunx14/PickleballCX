@@ -1,4 +1,14 @@
-import type { SkillLevel, ProfileVisibility, CourtType, SessionType, EventVisibility, RsvpStatus, GroupMemberRole } from '../constants';
+import type {
+  SkillLevel,
+  ProfileVisibility,
+  CourtType,
+  SessionType,
+  EventVisibility,
+  RsvpStatus,
+  GroupMemberRole,
+  PlayFormat,
+  RankedPreference,
+} from '../constants';
 
 export type Json =
   | string
@@ -20,6 +30,15 @@ export interface Database {
           profile_visibility: ProfileVisibility;
           phone: string | null;
           is_app_admin: boolean;
+          city: string | null;
+          city_lat: number | null;
+          city_lng: number | null;
+          dupr_rating: number | null;
+          play_format: PlayFormat;
+          ranked_preference: RankedPreference;
+          available_now: boolean;
+          available_until: string | null;
+          discovery_enabled: boolean;
           created_at: string;
           updated_at: string;
         };
@@ -31,6 +50,15 @@ export interface Database {
           profile_visibility?: ProfileVisibility;
           phone?: string | null;
           is_app_admin?: boolean;
+          city?: string | null;
+          city_lat?: number | null;
+          city_lng?: number | null;
+          dupr_rating?: number | null;
+          play_format?: PlayFormat;
+          ranked_preference?: RankedPreference;
+          available_now?: boolean;
+          available_until?: string | null;
+          discovery_enabled?: boolean;
           created_at?: string;
           updated_at?: string;
         };
@@ -42,6 +70,15 @@ export interface Database {
           profile_visibility?: ProfileVisibility;
           phone?: string | null;
           is_app_admin?: boolean;
+          city?: string | null;
+          city_lat?: number | null;
+          city_lng?: number | null;
+          dupr_rating?: number | null;
+          play_format?: PlayFormat;
+          ranked_preference?: RankedPreference;
+          available_now?: boolean;
+          available_until?: string | null;
+          discovery_enabled?: boolean;
           created_at?: string;
           updated_at?: string;
         };
@@ -411,6 +448,26 @@ export interface Database {
         Args: { p_invite_code: string };
         Returns: string;
       };
+      discover_players: {
+        Args: {
+          viewer_lat?: number | null;
+          viewer_lng?: number | null;
+          radius_mi?: number | null;
+          search_query?: string | null;
+          skill_filter?: SkillLevel | null;
+          format_filter?: PlayFormat | null;
+        };
+        Returns: {
+          id: string;
+          display_name: string;
+          city: string | null;
+          skill_level: SkillLevel;
+          play_format: PlayFormat;
+          ranked_preference: RankedPreference;
+          available_now: boolean;
+          distance_km: number | null;
+        }[];
+      };
     };
     Enums: {
       skill_level: SkillLevel;
@@ -420,6 +477,8 @@ export interface Database {
       event_visibility: EventVisibility;
       rsvp_status: RsvpStatus;
       group_member_role: GroupMemberRole;
+      play_format: PlayFormat;
+      ranked_preference: RankedPreference;
     };
     CompositeTypes: Record<string, never>;
   };

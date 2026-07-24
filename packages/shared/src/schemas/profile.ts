@@ -1,6 +1,6 @@
 import { z } from 'zod';
 
-import { SKILL_LEVELS } from '../constants';
+import { PLAY_FORMATS, RANKED_PREFERENCES, SKILL_LEVELS } from '../constants';
 
 export const profileSetupSchema = z.object({
   displayName: z
@@ -14,6 +14,16 @@ export const profileSetupSchema = z.object({
 });
 
 export type ProfileSetupInput = z.infer<typeof profileSetupSchema>;
+
+export const profileEditSchema = profileSetupSchema.extend({
+  city: z.string().trim().max(80, 'City must be 80 characters or less').optional(),
+  playFormat: z.enum(PLAY_FORMATS),
+  rankedPreference: z.enum(RANKED_PREFERENCES),
+  discoveryEnabled: z.boolean(),
+  availableNow: z.boolean(),
+});
+
+export type ProfileEditInput = z.infer<typeof profileEditSchema>;
 
 export const signUpSchema = z
   .object({

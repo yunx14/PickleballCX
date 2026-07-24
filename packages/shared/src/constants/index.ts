@@ -19,6 +19,12 @@ export type RsvpStatus = (typeof RSVP_STATUSES)[number];
 export const GROUP_MEMBER_ROLES = ['admin', 'member'] as const;
 export type GroupMemberRole = (typeof GROUP_MEMBER_ROLES)[number];
 
+export const PLAY_FORMATS = ['singles', 'doubles', 'mixed', 'either'] as const;
+export type PlayFormat = (typeof PLAY_FORMATS)[number];
+
+export const RANKED_PREFERENCES = ['ranked', 'unranked', 'either'] as const;
+export type RankedPreference = (typeof RANKED_PREFERENCES)[number];
+
 export const SKILL_LEVEL_LABELS: Record<SkillLevel, string> = {
   beginner: 'Beginner',
   intermediate: 'Intermediate',
@@ -41,6 +47,19 @@ export const RSVP_STATUS_LABELS: Record<RsvpStatus, string> = {
   maybe: 'Maybe',
   not_going: 'Not going',
   waitlist: 'Waitlist',
+};
+
+export const PLAY_FORMAT_LABELS: Record<PlayFormat, string> = {
+  singles: 'Singles',
+  doubles: 'Doubles',
+  mixed: 'Mixed doubles',
+  either: 'Either',
+};
+
+export const RANKED_PREFERENCE_LABELS: Record<RankedPreference, string> = {
+  ranked: 'Ranked',
+  unranked: 'Unranked',
+  either: 'Either',
 };
 
 export const APP_NAME = 'PickleballCX';

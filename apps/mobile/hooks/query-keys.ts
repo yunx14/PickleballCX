@@ -32,4 +32,8 @@ export const queryKeys = {
   announcements: {
     group: (groupId: string) => ['announcements', 'group', groupId] as const,
   },
+  players: {
+    discover: (filter?: Record<string, unknown>) =>
+      ['players', 'discover', filter ?? {}] as const,
+  },
 };

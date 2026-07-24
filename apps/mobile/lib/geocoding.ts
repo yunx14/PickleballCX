@@ -83,3 +83,13 @@ export async function geocodeAddress(address: string): Promise<Coordinates> {
 
   return coords;
 }
+
+/** Resolve a city name to approximate WGS84 coordinates (city center). */
+export async function geocodeCity(city: string): Promise<Coordinates> {
+  const trimmed = city.trim();
+  if (!trimmed) {
+    throw new GeocodingError('Enter a city to geocode');
+  }
+
+  return geocodeAddress(trimmed);
+}
