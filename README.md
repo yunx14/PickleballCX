@@ -99,6 +99,7 @@ Monorepo layout:
 ## Documentation
 
 - [`docs/APP_OVERVIEW.md`](docs/APP_OVERVIEW.md) — full product overview (same content as above)
+- [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) — system diagrams (Mermaid)
 - [`DEPLOY.md`](DEPLOY.md) — Vercel, EAS, push notifications
 - [`NOTES.md`](NOTES.md) — deferred work and blockers
 - [`PLAN.md`](PLAN.md) — original MVP plan

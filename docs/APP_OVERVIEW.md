@@ -88,6 +88,7 @@
 
 ## Related docs
 
+- [`ARCHITECTURE.md`](ARCHITECTURE.md) — system diagrams and data flows
 - [`DEPLOY.md`](../DEPLOY.md) — web deploy, EAS builds, push setup
 - [`NOTES.md`](../NOTES.md) — deferred work and blockers
 - [`PLAN.md`](../PLAN.md) — original MVP plan
