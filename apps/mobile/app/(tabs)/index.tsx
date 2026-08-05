@@ -1,117 +1,84 @@
 import { router } from 'expo-router';
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 
+import { SessionsFeed } from '@/components/sessions/SessionsFeed';
 import { Card } from '@/components/ui/Card';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import { brand } from '@/constants/brand';
 import { spacing } from '@/constants/theme';
-import { useUpcomingEvents } from '@/hooks/useEvents';
 import { useGroups } from '@/hooks/useGroups';
-import { sessionsTabRoute } from '@/lib/routes';
 import { useAuth } from '@/providers/AuthProvider';
 
 export default function HomeScreen() {
   const { profile } = useAuth();
-  const { data: events } = useUpcomingEvents();
   const { data: groups } = useGroups();
-
-  const upcomingCount = events?.length ?? 0;
   const groupCount = groups?.length ?? 0;
 
   return (
-    <ScrollView contentContainerStyle={styles.scrollContent}>
-      <ScreenHeader
-        eyebrow={`Hey, ${profile?.display_name ?? 'player'}`}
-        title="Welcome back"
-        subtitle="See what's coming up, manage your groups, and schedule your next game."
-      />
+    <View style={styles.container}>
+      <View style={styles.headerBlock}>
+        <ScreenHeader
+          eyebrow={`Hey, ${profile?.display_name ?? 'player'}`}
+          title="Find a session"
+          subtitle="Your feed of group and nearby open sessions."
+        />
 
-      <View style={styles.statsRow}>
-        <View style={styles.statPill}>
-          <Text style={styles.statValue}>{upcomingCount}</Text>
-          <Text style={styles.statLabel}>Sessions</Text>
-        </View>
-        <View style={styles.statPill}>
-          <Text style={styles.statValue}>{groupCount}</Text>
-          <Text style={styles.statLabel}>Groups</Text>
-        </View>
+        {groupCount === 0 ? (
+          <Card onPress={() => router.push('/(tabs)/groups')}>
+            <Text style={styles.cardTitle}>Get started with a group</Text>
+            <Text style={styles.cardBody}>
+              Create or join a group to coordinate recurring games with your crew.
+            </Text>
+            <Text style={styles.cardLink}>Manage groups →</Text>
+          </Card>
+        ) : (
+          <Pressable onPress={() => router.push('/(tabs)/groups')} style={styles.groupsLink}>
+            <Text style={styles.groupsLinkText}>
+              {groupCount} group{groupCount === 1 ? '' : 's'} · Manage groups →
+            </Text>
+          </Pressable>
+        )}
       </View>
 
-      <Card accent onPress={() => router.push(sessionsTabRoute)}>
-        <Text style={styles.cardTitle}>Sessions</Text>
-        <Text style={styles.cardBody}>
-          {upcomingCount === 0
-            ? 'No upcoming sessions — tap to browse your feed'
-            : `${upcomingCount} upcoming session${upcomingCount === 1 ? '' : 's'}`}
-        </Text>
-        <Text style={styles.cardLink}>View sessions →</Text>
-      </Card>
-
-      <Card onPress={() => router.push('/(tabs)/groups')}>
-        <Text style={styles.cardTitle}>Groups</Text>
-        <Text style={styles.cardBody}>
-          {groupCount === 0
-            ? 'Create or join a group to get started'
-            : `${groupCount} group${groupCount === 1 ? '' : 's'}`}
-        </Text>
-        <Text style={styles.cardLink}>Manage groups →</Text>
-      </Card>
-    </ScrollView>
+      <SessionsFeed />
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  scrollContent: {
-    flexGrow: 1,
+  container: {
+    flex: 1,
     backgroundColor: brand.background,
+  },
+  headerBlock: {
     paddingHorizontal: spacing.xl,
     paddingTop: spacing.xl,
-    paddingBottom: spacing.xxxl,
+    paddingBottom: spacing.sm,
     gap: spacing.md,
-  },
-  statsRow: {
-    flexDirection: 'row',
-    gap: spacing.md,
-    marginBottom: spacing.sm,
-  },
-  statPill: {
-    flex: 1,
-    backgroundColor: brand.surface,
-    borderRadius: 14,
-    borderWidth: 1,
-    borderColor: brand.border,
-    paddingVertical: spacing.md,
-    paddingHorizontal: spacing.lg,
-    alignItems: 'center',
-  },
-  statValue: {
-    fontSize: 28,
-    fontWeight: '800',
-    color: brand.accent,
-  },
-  statLabel: {
-    fontSize: 11,
-    fontWeight: '700',
-    color: brand.muted,
-    marginTop: 2,
-    letterSpacing: 0.8,
-    textTransform: 'uppercase',
   },
   cardTitle: {
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: '700',
     color: brand.text,
     marginBottom: spacing.xs,
   },
   cardBody: {
-    fontSize: 15,
-    lineHeight: 22,
+    fontSize: 14,
+    lineHeight: 20,
     color: brand.muted,
   },
   cardLink: {
     marginTop: spacing.md,
     fontSize: 14,
     fontWeight: '700',
+    color: brand.accent,
+  },
+  groupsLink: {
+    alignSelf: 'flex-start',
+  },
+  groupsLinkText: {
+    fontSize: 14,
+    fontWeight: '600',
     color: brand.accent,
   },
 });

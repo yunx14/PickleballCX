@@ -19,6 +19,7 @@ import {
   View,
 } from 'react-native';
 
+import { CourtMapView } from '@/components/ui/CourtMapView';
 import {
   ErrorText,
   FieldLabel,
@@ -30,6 +31,7 @@ import {
 } from '@/components/ui/Screen';
 import { brand } from '@/constants/brand';
 import { useCourt, useUpdateCourt } from '@/hooks/useCourts';
+import { hasValidCoordinates } from '@/lib/geo';
 import { useAuth } from '@/providers/AuthProvider';
 
 export default function CourtDetailScreen() {
@@ -114,6 +116,14 @@ export default function CourtDetailScreen() {
           <Title>{court.name}</Title>
           <Subtitle>{court.address}</Subtitle>
 
+          {hasValidCoordinates({ lat: court.lat, lng: court.lng }) ? (
+            <CourtMapView lat={court.lat} lng={court.lng} height={220} interactive />
+          ) : (
+            <Text style={styles.mapPending}>
+              Map pin not set yet — edit and re-save the court address to geocode coordinates.
+            </Text>
+          )}
+
           <View style={styles.detailCard}>
             <DetailRow label="Type" value={COURT_TYPE_LABELS[court.court_type]} />
             <DetailRow
@@ -121,11 +131,6 @@ export default function CourtDetailScreen() {
               value={`${court.num_courts} court${court.num_courts === 1 ? '' : 's'}`}
             />
             {court.notes ? <DetailRow label="Notes" value={court.notes} /> : null}
-            {court.lat === 0 && court.lng === 0 ? (
-              <Text style={styles.mapPending}>
-                Map pin not set yet — coordinates will be added when map integration is enabled.
-              </Text>
-            ) : null}
           </View>
 
           {isAppAdmin ? (
@@ -309,6 +314,7 @@ const styles = StyleSheet.create({
     lineHeight: 20,
     color: brand.muted,
     fontStyle: 'italic',
+    marginBottom: 16,
   },
   input: {
     backgroundColor: brand.surface,

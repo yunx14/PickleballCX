@@ -2,6 +2,7 @@ import { SESSION_TYPE_LABELS } from '@pickleballcx/shared';
 import { StyleSheet, Text, View } from 'react-native';
 
 import { Card } from '@/components/ui/Card';
+import { CourtMapPreview } from '@/components/ui/CourtMapPreview';
 import { brand } from '@/constants/brand';
 import { spacing, typography } from '@/constants/theme';
 import type { EventRow } from '@/hooks/useEvents';
@@ -30,6 +31,7 @@ export function SessionCard({
   return (
     <View style={styles.wrapper}>
       <Card onPress={onPress} accent={isOpenPlay}>
+        <CourtMapPreview lat={event.lat} lng={event.lng} />
         <View style={styles.metaRow}>
           <Text style={styles.datetime}>{formatSessionDateTime(event.starts_at)}</Text>
           {isOpenPlay ? (

@@ -1,6 +1,6 @@
 import type { Coordinates } from '@/lib/geo';
 
-const NOMINATIM_URL = 'https://nominatim.openstreetmap.org/search';
+import { getGoogleMapsApiKey } from './google-maps';
 
 export class GeocodingError extends Error {
   constructor(message: string) {
@@ -9,51 +9,51 @@ export class GeocodingError extends Error {
   }
 }
 
-async function geocodeWithMapbox(address: string, token: string): Promise<Coordinates | null> {
-  const encoded = encodeURIComponent(address.trim());
-  const url = `https://api.mapbox.com/geocoding/v5/mapbox.places/${encoded}.json?access_token=${token}&limit=1`;
-
-  const response = await fetch(url);
-  if (!response.ok) {
-    throw new GeocodingError('Mapbox geocoding request failed');
-  }
-
-  const payload = (await response.json()) as {
-    features?: Array<{ center?: [number, number] }>;
-  };
-
-  const center = payload.features?.[0]?.center;
-  if (!center) return null;
-
-  return { lng: center[0], lat: center[1] };
+interface GoogleGeocodeResponse {
+  status: string;
+  results?: Array<{
+    geometry?: {
+      location?: {
+        lat?: number;
+        lng?: number;
+      };
+    };
+  }>;
+  error_message?: string;
 }
 
-async function geocodeWithNominatim(address: string): Promise<Coordinates | null> {
+async function geocodeWithGoogle(address: string, apiKey: string): Promise<Coordinates | null> {
   const params = new URLSearchParams({
-    q: address.trim(),
-    format: 'json',
-    limit: '1',
+    address: address.trim(),
+    key: apiKey,
   });
 
-  const response = await fetch(`${NOMINATIM_URL}?${params.toString()}`, {
-    headers: {
-      Accept: 'application/json',
-      'User-Agent': 'PickleballCX/1.0 (mobile app)',
-    },
-  });
+  const response = await fetch(
+    `https://maps.googleapis.com/maps/api/geocode/json?${params.toString()}`,
+  );
 
   if (!response.ok) {
-    throw new GeocodingError('OpenStreetMap geocoding request failed');
+    throw new GeocodingError('Google geocoding request failed');
   }
 
-  const results = (await response.json()) as Array<{ lat: string; lon: string }>;
-  const first = results[0];
-  if (!first) return null;
+  const payload = (await response.json()) as GoogleGeocodeResponse;
 
-  return {
-    lat: Number(first.lat),
-    lng: Number(first.lon),
-  };
+  if (payload.status === 'ZERO_RESULTS') {
+    return null;
+  }
+
+  if (payload.status !== 'OK') {
+    throw new GeocodingError(
+      payload.error_message ?? `Google geocoding failed (${payload.status})`,
+    );
+  }
+
+  const location = payload.results?.[0]?.geometry?.location;
+  if (location?.lat == null || location?.lng == null) {
+    return null;
+  }
+
+  return { lat: location.lat, lng: location.lng };
 }
 
 /** Resolve a street address to WGS84 coordinates. */
@@ -63,17 +63,14 @@ export async function geocodeAddress(address: string): Promise<Coordinates> {
     throw new GeocodingError('Enter an address to geocode');
   }
 
-  const mapboxToken = process.env.EXPO_PUBLIC_MAPBOX_ACCESS_TOKEN?.trim();
-
-  let coords: Coordinates | null = null;
-
-  if (mapboxToken) {
-    coords = await geocodeWithMapbox(trimmed, mapboxToken);
+  const apiKey = getGoogleMapsApiKey();
+  if (!apiKey) {
+    throw new GeocodingError(
+      'Google Maps API key is not configured. Set EXPO_PUBLIC_GOOGLE_MAPS_API_KEY in apps/mobile/.env',
+    );
   }
 
-  if (!coords) {
-    coords = await geocodeWithNominatim(trimmed);
-  }
+  const coords = await geocodeWithGoogle(trimmed, apiKey);
 
   if (!coords || !Number.isFinite(coords.lat) || !Number.isFinite(coords.lng)) {
     throw new GeocodingError(

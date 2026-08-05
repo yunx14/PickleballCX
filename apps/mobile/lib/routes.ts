@@ -42,7 +42,10 @@ export function courtRoute(courtId: string): Href {
   return `/courts/${courtId}` as Href;
 }
 
-export const sessionsTabRoute = '/(tabs)/sessions' as Href;
+export const homeTabRoute = '/(tabs)' as Href;
+
+/** @deprecated Sessions live on Home; kept for existing navigation call sites. */
+export const sessionsTabRoute = homeTabRoute;
 
 export const privacyPolicyRoute = '/legal/privacy' as Href;
 export const termsOfServiceRoute = '/legal/terms' as Href;

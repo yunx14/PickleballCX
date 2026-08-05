@@ -1,0 +1,15 @@
+{
+  "expo": {
+    "extra": {
+      "eas": {
+        "projectId": "d44137ea-48b4-474d-bac0-9d6df4221232"
+      }
+    },
+    "ios": {
+      "bundleIdentifier": "com.yunx14.pickleballcx",
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
+      }
+    }
+  }
+}

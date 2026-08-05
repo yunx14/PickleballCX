@@ -20,15 +20,28 @@ EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY=your_publishable_key
 EXPO_PUBLIC_EAS_PROJECT_ID=your_eas_project_id   # required for push tokens on device
 ```
 
-Optional geocoding:
+Google Maps (geocoding, static maps on web, native SDK on device builds):
 
 ```bash
-EXPO_PUBLIC_MAPBOX_ACCESS_TOKEN=your_mapbox_token
+EXPO_PUBLIC_GOOGLE_MAPS_API_KEY=your_google_maps_api_key
 ```
+
+See [`apps/mobile/docs/MAPS.md`](apps/mobile/docs/MAPS.md) for GCP API enablement and key restrictions.
 
 ### Vercel (web deploy)
 
-Add the same `EXPO_PUBLIC_*` variables in the Vercel project settings.
+Add the same `EXPO_PUBLIC_*` variables in the Vercel project settings (including `EXPO_PUBLIC_GOOGLE_MAPS_API_KEY` for map previews and geocoding on web).
+
+### EAS secrets
+
+Add `EXPO_PUBLIC_GOOGLE_MAPS_API_KEY` to EAS secrets so native builds embed the Google Maps SDK key:
+
+```bash
+cd apps/mobile
+npx eas secret:create --name EXPO_PUBLIC_GOOGLE_MAPS_API_KEY --value your_key --scope project
+```
+
+Google Maps **requires a development or production EAS build** — it will not work in Expo Go.
 
 ---
 

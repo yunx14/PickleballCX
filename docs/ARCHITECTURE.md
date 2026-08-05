@@ -28,7 +28,7 @@ flowchart TB
   subgraph external [External services]
     Vercel[Vercel hosting<br/>pickleballcx.vercel.app]
     ExpoPush[Expo Push API]
-    Mapbox[Mapbox / Nominatim<br/>city geocoding]
+    GoogleMaps[Google Maps<br/>geocoding + map tiles]
     Email[Auth emails<br/>Supabase SMTP]
   end
 
@@ -39,7 +39,7 @@ flowchart TB
 
   clients --> DB
   clients --> Realtime
-  clients --> Mapbox
+  clients --> GoogleMaps
 
   Auth --> Email
   DB -->|pg_net triggers on insert| EdgeFn
@@ -56,7 +56,7 @@ flowchart TB
 | **Realtime** | Live updates for session comments, player messages, session invites |
 | **Edge Function** | Builds and sends push payloads via Expo when DB triggers fire |
 | **Vercel** | Hosts static web export only (not the backend) |
-| **Mapbox / Nominatim** | Geocode city name → lat/lng for Find Players distance |
+| **Google Maps** | Geocode addresses, session card maps (`react-native-maps` native / Static Maps web) |
 
 ---
 
