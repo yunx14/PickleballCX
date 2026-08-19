@@ -67,7 +67,7 @@ export default function SignUpScreen() {
       <ScreenContainer>
         <AuthBrandMark />
         <AuthHeading>Create account</AuthHeading>
-        <Subtitle>Join your pickleball group with structured sessions and RSVPs.</Subtitle>
+        <Subtitle>Find nearby sessions, RSVP, and see courts on the map.</Subtitle>
         <ErrorText message={formError} />
 
         <FieldLabel>Email</FieldLabel>

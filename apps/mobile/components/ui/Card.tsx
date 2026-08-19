@@ -24,13 +24,18 @@ export function Card({
   if (!onPress) return content;
 
   return (
-    <Pressable onPress={onPress} style={({ pressed }) => [pressed && styles.pressed]}>
+    <Pressable
+      onPress={onPress}
+      style={({ pressed }) => [styles.pressable, pressed && styles.pressed]}>
       {content}
     </Pressable>
   );
 }
 
 const styles = StyleSheet.create({
+  pressable: {
+    width: '100%',
+  },
   card: {
     backgroundColor: brand.surface,
     borderRadius: radius.lg,

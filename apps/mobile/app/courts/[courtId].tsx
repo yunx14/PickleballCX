@@ -2,6 +2,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import {
   COURT_TYPES,
   COURT_TYPE_LABELS,
+  SESSION_TYPE_LABELS,
   updateCourtSchema,
   type CourtType,
   type UpdateCourtInput,
@@ -31,7 +32,10 @@ import {
 } from '@/components/ui/Screen';
 import { brand } from '@/constants/brand';
 import { useCourt, useUpdateCourt } from '@/hooks/useCourts';
+import { useCourtEvents } from '@/hooks/useEvents';
+import { formatSessionDateTime } from '@/lib/format';
 import { hasValidCoordinates } from '@/lib/geo';
+import { newSessionRoute, sessionRoute } from '@/lib/routes';
 import { useAuth } from '@/providers/AuthProvider';
 
 export default function CourtDetailScreen() {
@@ -40,6 +44,7 @@ export default function CourtDetailScreen() {
   const { profile } = useAuth();
   const isAppAdmin = profile?.is_app_admin ?? false;
   const { data: court, isLoading, error } = useCourt(id);
+  const { data: courtEvents, isLoading: sessionsLoading } = useCourtEvents(id);
   const updateCourt = useUpdateCourt(id);
   const [formError, setFormError] = useState<string>();
   const [isEditing, setIsEditing] = useState(false);
@@ -117,7 +122,7 @@ export default function CourtDetailScreen() {
           <Subtitle>{court.address}</Subtitle>
 
           {hasValidCoordinates({ lat: court.lat, lng: court.lng }) ? (
-            <CourtMapView lat={court.lat} lng={court.lng} height={220} interactive />
+            <CourtMapView lat={court.lat} lng={court.lng} height={280} interactive />
           ) : (
             <Text style={styles.mapPending}>
               Map pin not set yet — edit and re-save the court address to geocode coordinates.
@@ -133,8 +138,34 @@ export default function CourtDetailScreen() {
             {court.notes ? <DetailRow label="Notes" value={court.notes} /> : null}
           </View>
 
+          <Text style={styles.sectionTitle}>Upcoming sessions</Text>
+          {sessionsLoading ? (
+            <ActivityIndicator color={brand.accent} style={styles.sessionsSpinner} />
+          ) : courtEvents?.length ? (
+            <View style={styles.sessionList}>
+              {courtEvents.map((event) => (
+                <Pressable
+                  key={event.id}
+                  onPress={() => router.push(sessionRoute(event.id))}
+                  style={({ pressed }) => [styles.sessionRow, pressed && styles.sessionRowPressed]}>
+                  <Text style={styles.sessionWhen}>{formatSessionDateTime(event.starts_at)}</Text>
+                  <Text style={styles.sessionType}>{SESSION_TYPE_LABELS[event.session_type]}</Text>
+                </Pressable>
+              ))}
+            </View>
+          ) : (
+            <Text style={styles.emptySessions}>No upcoming sessions at this court yet.</Text>
+          )}
+
+          <PrimaryButton
+            label="Schedule session"
+            onPress={() => router.push(newSessionRoute(court.id))}
+          />
+
           {isAppAdmin ? (
-            <PrimaryButton label="Edit court" onPress={() => setIsEditing(true)} />
+            <Pressable onPress={() => setIsEditing(true)} style={styles.editLink}>
+              <Text style={styles.editLinkText}>Edit court</Text>
+            </Pressable>
           ) : null}
         </FormScreenContainer>
       </ScrollView>
@@ -315,6 +346,57 @@ const styles = StyleSheet.create({
     color: brand.muted,
     fontStyle: 'italic',
     marginBottom: 16,
+  },
+  sectionTitle: {
+    fontSize: 13,
+    fontWeight: '800',
+    color: brand.muted,
+    letterSpacing: 0.6,
+    textTransform: 'uppercase',
+    marginBottom: 12,
+  },
+  sessionsSpinner: {
+    marginBottom: 16,
+  },
+  sessionList: {
+    gap: 10,
+    marginBottom: 20,
+  },
+  sessionRow: {
+    backgroundColor: brand.surface,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: brand.border,
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+  },
+  sessionRowPressed: {
+    opacity: 0.85,
+  },
+  sessionWhen: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: brand.text,
+  },
+  sessionType: {
+    fontSize: 14,
+    color: brand.muted,
+    marginTop: 4,
+  },
+  emptySessions: {
+    fontSize: 14,
+    lineHeight: 20,
+    color: brand.muted,
+    marginBottom: 20,
+  },
+  editLink: {
+    marginTop: 16,
+    alignItems: 'center',
+  },
+  editLinkText: {
+    color: brand.muted,
+    fontSize: 15,
+    fontWeight: '600',
   },
   input: {
     backgroundColor: brand.surface,

@@ -48,6 +48,7 @@ export interface EventRsvpRow {
   status: RsvpStatus;
   display_name: string;
   skill_level: SkillLevel | null;
+  avatar_url: string | null;
 }
 
 async function fetchUpcomingEvents(): Promise<EventRow[]> {
@@ -75,6 +76,43 @@ async function fetchUpcomingEvents(): Promise<EventRow[]> {
     `,
     )
     .gte('starts_at', now)
+    .is('group_id', null)
+    .eq('visibility', 'public')
+    .order('starts_at', { ascending: true });
+
+  if (error) throw error;
+
+  return (data ?? []).map(normalizeEventRow);
+}
+
+async function fetchCourtEvents(courtId: string): Promise<EventRow[]> {
+  const now = new Date().toISOString();
+  const { data, error } = await supabase
+    .from('events')
+    .select(
+      `
+      id,
+      group_id,
+      court_id,
+      visibility,
+      starts_at,
+      max_players,
+      session_type,
+      skill_min,
+      skill_max,
+      description,
+      lat,
+      lng,
+      created_by,
+      created_at,
+      courts ( name, address, num_courts ),
+      groups ( name )
+    `,
+    )
+    .eq('court_id', courtId)
+    .gte('starts_at', now)
+    .is('group_id', null)
+    .eq('visibility', 'public')
     .order('starts_at', { ascending: true });
 
   if (error) throw error;
@@ -147,6 +185,61 @@ async function fetchEvent(eventId: string): Promise<EventRow | null> {
   return normalizeEventRow(data);
 }
 
+async function fetchMyEvents(
+  userId: string,
+  timeframe: 'upcoming' | 'past',
+): Promise<EventRow[]> {
+  const now = new Date().toISOString();
+
+  const { data: rsvps, error: rsvpError } = await supabase
+    .from('event_rsvps')
+    .select('event_id')
+    .eq('user_id', userId)
+    .in('status', ['going', 'maybe', 'waitlist']);
+
+  if (rsvpError) throw rsvpError;
+
+  const rsvpIds = (rsvps ?? []).map((row) => row.event_id);
+
+  let query = supabase.from('events').select(
+    `
+      id,
+      group_id,
+      court_id,
+      visibility,
+      starts_at,
+      max_players,
+      session_type,
+      skill_min,
+      skill_max,
+      description,
+      lat,
+      lng,
+      created_by,
+      created_at,
+      courts ( name, address, num_courts ),
+      groups ( name )
+    `,
+  );
+
+  if (timeframe === 'upcoming') {
+    query = query.gte('starts_at', now).order('starts_at', { ascending: true });
+  } else {
+    query = query.lt('starts_at', now).order('starts_at', { ascending: false });
+  }
+
+  if (rsvpIds.length > 0) {
+    query = query.or(`created_by.eq.${userId},id.in.(${rsvpIds.join(',')})`);
+  } else {
+    query = query.eq('created_by', userId);
+  }
+
+  const { data, error } = await query;
+  if (error) throw error;
+
+  return (data ?? []).map(normalizeEventRow);
+}
+
 async function fetchEventRsvps(eventId: string): Promise<EventRsvpRow[]> {
   const { data, error } = await supabase
     .from('event_rsvps')
@@ -155,7 +248,7 @@ async function fetchEventRsvps(eventId: string): Promise<EventRsvpRow[]> {
       event_id,
       user_id,
       status,
-      profiles ( display_name, skill_level )
+      profiles ( display_name, skill_level, avatar_url )
     `,
     )
     .eq('event_id', eventId)
@@ -173,6 +266,7 @@ async function fetchEventRsvps(eventId: string): Promise<EventRsvpRow[]> {
         status: row.status,
         display_name: profile.display_name,
         skill_level: profile.skill_level,
+        avatar_url: profile.avatar_url,
       };
     })
     .filter((row): row is EventRsvpRow => row !== null);
@@ -237,6 +331,14 @@ export function useGroupEvents(groupId: string) {
   });
 }
 
+export function useCourtEvents(courtId: string) {
+  return useQuery({
+    queryKey: queryKeys.events.court(courtId),
+    queryFn: () => fetchCourtEvents(courtId),
+    enabled: !!courtId,
+  });
+}
+
 export function useEvent(eventId: string) {
   return useQuery({
     queryKey: queryKeys.events.detail(eventId),
@@ -253,13 +355,56 @@ export function useEventRsvps(eventId: string) {
   });
 }
 
+export function useMyUpcomingEvents() {
+  const { session } = useAuth();
+  const userId = session?.user.id;
+
+  return useQuery({
+    queryKey: queryKeys.events.mine(userId, 'upcoming'),
+    queryFn: () => fetchMyEvents(userId!, 'upcoming'),
+    enabled: !!userId,
+  });
+}
+
+export function useMyPastEvents() {
+  const { session } = useAuth();
+  const userId = session?.user.id;
+
+  return useQuery({
+    queryKey: queryKeys.events.mine(userId, 'past'),
+    queryFn: () => fetchMyEvents(userId!, 'past'),
+    enabled: !!userId,
+  });
+}
+
+export function useMyEventRsvps() {
+  const { session } = useAuth();
+  const userId = session?.user.id;
+
+  return useQuery({
+    queryKey: queryKeys.events.myRsvps(userId),
+    queryFn: async () => {
+      if (!userId) return [];
+
+      const { data, error } = await supabase
+        .from('event_rsvps')
+        .select('event_id, status')
+        .eq('user_id', userId)
+        .in('status', ['going', 'maybe', 'waitlist']);
+
+      if (error) throw error;
+      return (data ?? []) as Array<{ event_id: string; status: RsvpStatus }>;
+    },
+    enabled: !!userId,
+  });
+}
+
 export function useCreateEvent() {
   const queryClient = useQueryClient();
   const { session } = useAuth();
 
   return useMutation({
     mutationFn: async (input: {
-      groupId?: string | null;
       courtId: string;
       startsAt: Date;
       sessionType: SessionType;
@@ -270,15 +415,12 @@ export function useCreateEvent() {
     }) => {
       if (!session?.user.id) throw new Error('Not authenticated');
 
-      const groupId = input.groupId ?? null;
-      const visibility: EventVisibility = groupId ? 'group_private' : 'public';
-
       const { data, error } = await supabase
         .from('events')
         .insert({
-          group_id: groupId,
+          group_id: null,
           court_id: input.courtId,
-          visibility,
+          visibility: 'public' satisfies EventVisibility,
           starts_at: input.startsAt.toISOString(),
           session_type: input.sessionType,
           max_players: input.maxPlayers ?? null,
@@ -291,13 +433,12 @@ export function useCreateEvent() {
         .single();
 
       if (error) throw error;
-      return { id: data.id as string, groupId };
+      return { id: data.id as string, courtId: input.courtId };
     },
-    onSuccess: ({ groupId }) => {
-      if (groupId) {
-        void queryClient.invalidateQueries({ queryKey: queryKeys.events.group(groupId) });
-      }
+    onSuccess: ({ courtId }) => {
       void queryClient.invalidateQueries({ queryKey: [...queryKeys.events.all, 'upcoming'] });
+      void queryClient.invalidateQueries({ queryKey: [...queryKeys.events.all, 'mine'] });
+      void queryClient.invalidateQueries({ queryKey: queryKeys.events.court(courtId) });
     },
   });
 }
@@ -330,12 +471,14 @@ export function useUpdateEvent(eventId: string, groupId: string | null) {
 
       if (error) throw error;
     },
-    onSuccess: () => {
+    onSuccess: (_data, input) => {
       void queryClient.invalidateQueries({ queryKey: queryKeys.events.detail(eventId) });
       if (groupId) {
         void queryClient.invalidateQueries({ queryKey: queryKeys.events.group(groupId) });
       }
       void queryClient.invalidateQueries({ queryKey: [...queryKeys.events.all, 'upcoming'] });
+      void queryClient.invalidateQueries({ queryKey: [...queryKeys.events.all, 'mine'] });
+      void queryClient.invalidateQueries({ queryKey: queryKeys.events.court(input.courtId) });
     },
   });
 }
@@ -355,6 +498,7 @@ export function useDeleteEvent(eventId: string, groupId: string | null) {
         void queryClient.invalidateQueries({ queryKey: queryKeys.events.group(groupId) });
       }
       void queryClient.invalidateQueries({ queryKey: [...queryKeys.events.all, 'upcoming'] });
+      void queryClient.invalidateQueries({ queryKey: [...queryKeys.events.all, 'mine'] });
     },
   });
 }
@@ -410,6 +554,7 @@ export function useRsvp(eventId: string) {
           status,
           display_name: displayName,
           skill_level: profile?.skill_level ?? null,
+          avatar_url: profile?.avatar_url ?? null,
         },
       ];
 
@@ -424,6 +569,8 @@ export function useRsvp(eventId: string) {
     onSettled: () => {
       void queryClient.invalidateQueries({ queryKey: queryKeys.events.rsvps(eventId) });
       void queryClient.invalidateQueries({ queryKey: [...queryKeys.events.all, 'upcoming'] });
+      void queryClient.invalidateQueries({ queryKey: [...queryKeys.events.all, 'myRsvps'] });
+      void queryClient.invalidateQueries({ queryKey: [...queryKeys.events.all, 'mine'] });
     },
   });
 }

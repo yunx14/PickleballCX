@@ -14,7 +14,7 @@ import { PrimaryButton } from '@/components/ui/Screen';
 import { brand } from '@/constants/brand';
 import { spacing } from '@/constants/theme';
 import { useGroupEvents } from '@/hooks/useEvents';
-import { newSessionRoute, sessionRoute } from '@/lib/routes';
+import { mapTabRoute, sessionRoute } from '@/lib/routes';
 
 export default function GroupSessionsScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -58,7 +58,7 @@ export default function GroupSessionsScreen() {
       <View style={styles.footer}>
         <PrimaryButton
           label="Schedule session"
-          onPress={() => router.push(newSessionRoute(groupId))}
+          onPress={() => router.push(mapTabRoute)}
         />
       </View>
     </View>

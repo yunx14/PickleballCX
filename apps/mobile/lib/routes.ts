@@ -20,11 +20,8 @@ export function newGroupAnnouncementRoute(groupId: string): Href {
   return `/groups/${groupId}/announcements/new` as Href;
 }
 
-export function newSessionRoute(groupId?: string): Href {
-  if (groupId) {
-    return `/sessions/new?groupId=${groupId}` as Href;
-  }
-  return '/sessions/new' as Href;
+export function newSessionRoute(courtId: string): Href {
+  return `/sessions/new?courtId=${courtId}` as Href;
 }
 
 export function sessionRoute(eventId: string): Href {
@@ -43,6 +40,10 @@ export function courtRoute(courtId: string): Href {
 }
 
 export const homeTabRoute = '/(tabs)' as Href;
+export const mapTabRoute = '/(tabs)/map' as Href;
+export const myGamesTabRoute = '/(tabs)/my-games' as Href;
+export const profileTabRoute = '/(tabs)/profile' as Href;
+export const notificationsRoute = '/(tabs)/notifications' as Href;
 
 /** @deprecated Sessions live on Home; kept for existing navigation call sites. */
 export const sessionsTabRoute = homeTabRoute;

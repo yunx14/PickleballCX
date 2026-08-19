@@ -8,7 +8,7 @@ import { ActivityIndicator, ScrollView, StyleSheet, Text, View } from 'react-nat
 import { SessionForm } from '@/components/sessions/SessionForm';
 import { PrimaryButton, FormScreenContainer, Subtitle, Title } from '@/components/ui/Screen';
 import { brand } from '@/constants/brand';
-import { useCourts } from '@/hooks/useCourts';
+import { useCourt } from '@/hooks/useCourts';
 import { useEvent, useUpdateEvent } from '@/hooks/useEvents';
 import { useAuth } from '@/providers/AuthProvider';
 
@@ -18,7 +18,7 @@ export default function EditSessionScreen() {
   const { session } = useAuth();
   const { data: event, isLoading: eventLoading, error: eventError } = useEvent(id);
   const groupId = event?.group_id ?? null;
-  const { data: courts, isLoading: courtsLoading } = useCourts();
+  const { data: court, isLoading: courtLoading } = useCourt(event?.court_id ?? '');
   const updateEvent = useUpdateEvent(id, groupId);
   const [formError, setFormError] = useState<string>();
 
@@ -75,7 +75,7 @@ export default function EditSessionScreen() {
     },
   );
 
-  if (eventLoading || courtsLoading) {
+  if (eventLoading || courtLoading) {
     return (
       <View style={styles.centered}>
         <ActivityIndicator size="large" color={brand.accent} />
@@ -103,11 +103,11 @@ export default function EditSessionScreen() {
     );
   }
 
-  if (!courts?.length) {
+  if (!court) {
     return (
       <FormScreenContainer>
-        <Title>Add a court first</Title>
-        <Subtitle>This group needs at least one court before you can edit the session.</Subtitle>
+        <Title>Court not found</Title>
+        <Subtitle>This session’s court is no longer available.</Subtitle>
         <PrimaryButton label="Go back" onPress={() => router.back()} />
       </FormScreenContainer>
     );
@@ -118,8 +118,8 @@ export default function EditSessionScreen() {
       <FormScreenContainer>
         <SessionForm
           title="Edit session"
-          subtitle="Update the court, time, or session details."
-          courts={courts}
+          subtitle="Update the time or session details."
+          lockedCourt={court}
           control={control}
           errors={errors}
           formError={formError}

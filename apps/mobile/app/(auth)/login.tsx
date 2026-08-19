@@ -44,7 +44,7 @@ export default function LoginScreen() {
       style={styles.scrollView}>
       <ScreenContainer>
         <AuthBrandMark />
-        <Subtitle>Sign in to coordinate sessions with your group.</Subtitle>
+        <Subtitle>Sign in to find nearby sessions and courts.</Subtitle>
         <ErrorText message={formError} />
 
         <FieldLabel>Email</FieldLabel>

@@ -1,6 +1,8 @@
 import { SymbolView } from 'expo-symbols';
 import { Tabs } from 'expo-router';
 
+import { HeaderLogo } from '@/components/ui/HeaderLogo';
+import { HeaderRightButtons } from '@/components/ui/HeaderRightButtons';
 import { brand } from '@/constants/brand';
 import { spacing } from '@/constants/theme';
 
@@ -14,6 +16,10 @@ export default function TabLayout() {
         headerShadowVisible: false,
         headerTintColor: brand.text,
         headerTitleStyle: { fontWeight: '800', fontSize: 17, color: brand.text },
+        headerTitleAlign: 'center',
+        headerLeft: () => <HeaderLogo />,
+        headerLeftContainerStyle: { paddingLeft: 12 },
+        headerRight: () => <HeaderRightButtons />,
         tabBarStyle: {
           backgroundColor: brand.background,
           borderTopColor: brand.border,
@@ -32,10 +38,37 @@ export default function TabLayout() {
       <Tabs.Screen
         name="index"
         options={{
-          title: 'Home',
+          title: 'Find Games',
+          tabBarLabel: 'Home',
           tabBarIcon: ({ color }) => (
             <SymbolView
               name={{ ios: 'house.fill', android: 'home', web: 'home' }}
+              tintColor={color}
+              size={24}
+            />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="map"
+        options={{
+          title: 'Map',
+          tabBarIcon: ({ color }) => (
+            <SymbolView
+              name={{ ios: 'map.fill', android: 'map', web: 'map' }}
+              tintColor={color}
+              size={24}
+            />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="my-games"
+        options={{
+          title: 'My Games',
+          tabBarIcon: ({ color }) => (
+            <SymbolView
+              name={{ ios: 'calendar', android: 'event', web: 'event' }}
               tintColor={color}
               size={24}
             />
@@ -51,42 +84,31 @@ export default function TabLayout() {
       <Tabs.Screen
         name="players"
         options={{
-          title: 'Players',
+          href: null,
           headerShown: false,
-          tabBarIcon: ({ color }) => (
-            <SymbolView
-              name={{ ios: 'person.2.fill', android: 'groups', web: 'groups' }}
-              tintColor={color}
-              size={24}
-            />
-          ),
         }}
       />
       <Tabs.Screen
         name="groups"
         options={{
-          title: 'Groups',
+          href: null,
           headerShown: false,
-          tabBarIcon: ({ color }) => (
-            <SymbolView
-              name={{ ios: 'person.3.fill', android: 'group', web: 'group' }}
-              tintColor={color}
-              size={24}
-            />
-          ),
         }}
       />
       <Tabs.Screen
         name="profile"
         options={{
+          href: null,
           title: 'Profile',
-          tabBarIcon: ({ color }) => (
-            <SymbolView
-              name={{ ios: 'person.crop.circle', android: 'person', web: 'person' }}
-              tintColor={color}
-              size={24}
-            />
-          ),
+          headerRight: () => null,
+        }}
+      />
+      <Tabs.Screen
+        name="notifications"
+        options={{
+          href: null,
+          title: 'Notifications',
+          headerRight: () => null,
         }}
       />
     </Tabs>

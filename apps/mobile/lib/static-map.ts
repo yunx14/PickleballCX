@@ -29,3 +29,33 @@ export function getGoogleStaticMapUrl(
 
   return `https://maps.googleapis.com/maps/api/staticmap?${params.toString()}`;
 }
+
+/** Overview map with one pin per court — used on web where MapView is unavailable. */
+export function getGoogleStaticMapUrlForCourts(
+  courts: Array<{ lat: number; lng: number }>,
+  options?: { width?: number; height?: number; user?: Coordinates | null },
+): string | null {
+  const pins = courts.filter((court) => hasValidCoordinates(court)).slice(0, 25);
+  if (!pins.length) return null;
+
+  const apiKey = getGoogleMapsApiKey();
+  if (!apiKey) return null;
+
+  const width = options?.width ?? 640;
+  const height = options?.height ?? 400;
+  const markerLocations = pins.map((court) => `${court.lat},${court.lng}`).join('|');
+
+  const params = new URLSearchParams({
+    size: `${width}x${height}`,
+    scale: '2',
+    markers: `color:${MAP_PIN_COLOR}|${markerLocations}`,
+    key: apiKey,
+  });
+
+  const user = options?.user;
+  if (user && hasValidCoordinates(user)) {
+    params.append('markers', `color:0x4285F4|${user.lat},${user.lng}`);
+  }
+
+  return `https://maps.googleapis.com/maps/api/staticmap?${params.toString()}`;
+}

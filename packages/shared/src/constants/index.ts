@@ -31,6 +31,14 @@ export type MatchRequestStatus = (typeof MATCH_REQUEST_STATUSES)[number];
 export const SESSION_INVITE_STATUSES = ['pending', 'accepted', 'declined'] as const;
 export type SessionInviteStatus = (typeof SESSION_INVITE_STATUSES)[number];
 
+export const USER_NOTIFICATION_TYPES = [
+  'comment',
+  'rsvp',
+  'event_updated',
+  'event_cancelled',
+] as const;
+export type UserNotificationType = (typeof USER_NOTIFICATION_TYPES)[number];
+
 export const SKILL_LEVEL_LABELS: Record<SkillLevel, string> = {
   beginner: 'Beginner',
   intermediate: 'Intermediate',

@@ -14,7 +14,6 @@ import {
 import { PlayerCard } from '@/components/ui/PlayerCard';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { FilterDropdown, type FilterDropdownOption } from '@/components/ui/FilterDropdown';
-import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import { brand } from '@/constants/brand';
 import { spacing } from '@/constants/theme';
 import {
@@ -108,17 +107,6 @@ export default function PlayersScreen() {
 
   const isLoading = playersLoading || locationLoading;
 
-  const locationMessage = useMemo(() => {
-    if (locationLoading) return 'Getting your location…';
-    if (locationStatus === 'granted' && location) {
-      return 'Filtered by skill, distance, and format.';
-    }
-    if (locationStatus === 'denied') {
-      return 'Location off — distance filter disabled until location is enabled.';
-    }
-    return 'Location unavailable — distance filter disabled.';
-  }, [location, locationLoading, locationStatus]);
-
   const profileIncomplete =
     !profile?.discovery_enabled || !profile?.city?.trim() || !profile?.skill_level;
 
@@ -166,12 +154,6 @@ export default function PlayersScreen() {
         contentContainerStyle={styles.listContent}
         ListHeaderComponent={
           <View style={styles.headerBlock}>
-            <ScreenHeader
-              eyebrow="Find your next matchup"
-              title="Find players"
-              subtitle={locationMessage}
-            />
-
             {pendingActivityCount > 0 ? (
               <Pressable
                 style={styles.incomingBanner}

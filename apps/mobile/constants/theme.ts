@@ -20,6 +20,11 @@ export const radius = {
   pill: 999,
 } as const;
 
+/** Session cards wrap into extra columns once this width fits. */
+export const layout = {
+  cardMinWidth: 320,
+} as const;
+
 export const border = {
   color: brand.border,
   colorStrong: brand.borderStrong,
@@ -85,6 +90,7 @@ export const theme = {
   spacing,
   radius,
   border,
+  layout,
   typography,
   cardShadow,
 } as const;

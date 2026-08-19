@@ -5,6 +5,7 @@ import {
   type Coordinates,
   haversineDistanceKm,
   hasValidCoordinates,
+  milesToKm,
 } from '@/lib/geo';
 
 const SKILL_RANK: Record<SkillLevel, number> = {
@@ -23,7 +24,7 @@ export interface UpcomingEventsFilter {
   radiusMi?: DiscoveryRadiusMi;
 }
 
-function skillMatchesEvent(
+export function skillMatchesEvent(
   userSkill: SkillLevel | null | undefined,
   skillMin: SkillLevel | null,
   skillMax: SkillLevel | null,
@@ -46,16 +47,10 @@ export function filterUpcomingEvents(
   filter: UpcomingEventsFilter,
 ): EventRow[] {
   const radiusKm =
-    filter.radiusMi != null ? filter.radiusMi / 0.621371 : undefined;
+    filter.radiusMi != null ? milesToKm(filter.radiusMi) : undefined;
 
   return events.filter((event) => {
-    if (event.group_id) return true;
-    if (filter.userId && event.created_by === filter.userId) return true;
     if (!isPublicStandalone(event)) return false;
-
-    if (!skillMatchesEvent(filter.userSkill, event.skill_min, event.skill_max)) {
-      return false;
-    }
 
     if (!filter.location || radiusKm == null) return true;
 

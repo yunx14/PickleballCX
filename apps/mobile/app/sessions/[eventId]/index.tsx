@@ -9,6 +9,7 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
 import { ActivityIndicator, Linking, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
+import { Avatar } from '@/components/ui/Avatar';
 import { SkillBadge } from '@/components/ui/SkillBadge';
 import { PrimaryButton } from '@/components/ui/Screen';
 import { SessionComments } from '@/components/sessions/SessionComments';
@@ -20,6 +21,7 @@ import {
   useEvent,
   useEventRsvps,
   useRsvp,
+  type EventRsvpRow,
 } from '@/hooks/useEvents';
 import { formatSessionDateTime } from '@/lib/format';
 import { getDirectionsUrl } from '@/lib/maps-links';
@@ -99,9 +101,7 @@ export default function SessionDetailScreen() {
       <View style={styles.headerCard}>
         <Text style={styles.datetime}>{formatSessionDateTime(event.starts_at)}</Text>
         <Text style={styles.title}>{event.courts?.name ?? 'Session'}</Text>
-        <Text style={styles.subtitle}>
-          {event.groups?.name ?? 'Open play'} · {SESSION_TYPE_LABELS[event.session_type]}
-        </Text>
+        <Text style={styles.subtitle}>{SESSION_TYPE_LABELS[event.session_type]}</Text>
         {event.courts?.address ? <Text style={styles.address}>{event.courts.address}</Text> : null}
         {directionsUrl ? (
           <Pressable onPress={handleOpenDirections} style={styles.directionsLink}>
@@ -169,19 +169,11 @@ export default function SessionDetailScreen() {
               </Text>
             </Pressable>
           )}
-          {event.group_id ? (
             <Pressable
-              onPress={() => router.push(newSessionRoute(event.group_id!))}
+              onPress={() => router.push(newSessionRoute(event.court_id))}
               style={styles.secondaryLink}>
-              <Text style={styles.secondaryLinkText}>Schedule another group session</Text>
+              <Text style={styles.secondaryLinkText}>Schedule another session here</Text>
             </Pressable>
-          ) : (
-            <Pressable
-              onPress={() => router.push(newSessionRoute())}
-              style={styles.secondaryLink}>
-              <Text style={styles.secondaryLinkText}>Schedule another session</Text>
-            </Pressable>
-          )}
         </View>
       ) : null}
 
@@ -217,10 +209,7 @@ export default function SessionDetailScreen() {
         <Text style={styles.emptyAttendees}>No one has RSVP'd going yet. Be the first!</Text>
       ) : (
         goingAttendees.map((attendee) => (
-          <View key={attendee.user_id} style={styles.attendeeCard}>
-            <Text style={styles.attendeeName}>{attendee.display_name || 'Player'}</Text>
-            <SkillBadge level={attendee.skill_level} />
-          </View>
+          <AttendeeRow key={attendee.user_id} attendee={attendee} />
         ))
       )}
 
@@ -230,16 +219,25 @@ export default function SessionDetailScreen() {
           {(rsvps ?? [])
             .filter((row) => row.status === 'maybe')
             .map((attendee) => (
-              <View key={attendee.user_id} style={styles.attendeeCard}>
-                <Text style={styles.attendeeName}>{attendee.display_name || 'Player'}</Text>
-                <SkillBadge level={attendee.skill_level} />
-              </View>
+              <AttendeeRow key={attendee.user_id} attendee={attendee} />
             ))}
         </>
       ) : null}
 
       <SessionComments eventId={id} />
     </ScrollView>
+  );
+}
+
+function AttendeeRow({ attendee }: { attendee: EventRsvpRow }) {
+  return (
+    <View style={styles.attendeeCard}>
+      <Avatar uri={attendee.avatar_url} name={attendee.display_name} size={40} />
+      <View style={styles.attendeeCopy}>
+        <Text style={styles.attendeeName}>{attendee.display_name || 'Player'}</Text>
+        <SkillBadge level={attendee.skill_level} />
+      </View>
+    </View>
   );
 }
 
@@ -445,13 +443,19 @@ const styles = StyleSheet.create({
     color: brand.accentText,
   },
   attendeeCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
     backgroundColor: brand.surface,
     borderRadius: 12,
     padding: 14,
     borderWidth: 1,
     borderColor: brand.border,
     marginBottom: 10,
-    gap: 8,
+    gap: 12,
+  },
+  attendeeCopy: {
+    flex: 1,
+    gap: 6,
   },
   attendeeName: {
     fontSize: 16,

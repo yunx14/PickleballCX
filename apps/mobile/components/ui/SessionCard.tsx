@@ -26,32 +26,25 @@ export function SessionCard({
         ? `${goingCount}`
         : null;
 
-  const isOpenPlay = event.group_id == null;
-
   return (
     <View style={styles.wrapper}>
-      <Card onPress={onPress} accent={isOpenPlay}>
+      <Card onPress={onPress} style={styles.card}>
         <CourtMapPreview lat={event.lat} lng={event.lng} />
-        <View style={styles.metaRow}>
-          <Text style={styles.datetime}>{formatSessionDateTime(event.starts_at)}</Text>
-          {isOpenPlay ? (
-            <View style={styles.badge}>
-              <Text style={styles.badgeText}>OPEN</Text>
-            </View>
-          ) : null}
-        </View>
-        <Text style={styles.title}>{event.courts?.name ?? 'Session'}</Text>
-        <Text style={styles.subtitle}>
-          {event.groups?.name ?? 'Public'} · {SESSION_TYPE_LABELS[event.session_type]}
-        </Text>
-        {event.courts?.address ? <Text style={styles.address}>{event.courts.address}</Text> : null}
-        <View style={styles.footerRow}>
-          {distanceLabel ? <Text style={styles.distance}>{distanceLabel}</Text> : null}
-          {headcount ? (
-            <View style={styles.headcountBadge}>
-              <Text style={styles.headcount}>{headcount} going</Text>
-            </View>
-          ) : null}
+        <View style={styles.body}>
+          <View style={styles.metaRow}>
+            <Text style={styles.datetime}>{formatSessionDateTime(event.starts_at)}</Text>
+          </View>
+          <Text style={styles.title}>{event.courts?.name ?? 'Session'}</Text>
+          <Text style={styles.subtitle}>{SESSION_TYPE_LABELS[event.session_type]}</Text>
+          {event.courts?.address ? <Text style={styles.address}>{event.courts.address}</Text> : null}
+          <View style={styles.footerRow}>
+            {distanceLabel ? <Text style={styles.distance}>{distanceLabel}</Text> : null}
+            {headcount ? (
+              <View style={styles.headcountBadge}>
+                <Text style={styles.headcount}>{headcount} going</Text>
+              </View>
+            ) : null}
+          </View>
         </View>
       </Card>
     </View>
@@ -60,14 +53,20 @@ export function SessionCard({
 
 const styles = StyleSheet.create({
   wrapper: {
-    marginBottom: spacing.md,
+    width: '100%',
+  },
+  card: {
+    width: '100%',
+  },
+  body: {
+    flexDirection: 'column',
+    gap: spacing.xs,
   },
   metaRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     gap: spacing.sm,
-    marginBottom: spacing.sm,
   },
   datetime: {
     ...typography.caption,
@@ -75,35 +74,18 @@ const styles = StyleSheet.create({
     color: brand.accent,
     flexShrink: 1,
   },
-  badge: {
-    backgroundColor: brand.accentSurface,
-    borderRadius: 999,
-    paddingHorizontal: spacing.sm,
-    paddingVertical: 3,
-    borderWidth: 1,
-    borderColor: brand.accent,
-  },
-  badgeText: {
-    fontSize: 10,
-    fontWeight: '800',
-    color: brand.accent,
-    letterSpacing: 0.8,
-  },
   title: {
     fontSize: 18,
     fontWeight: '700',
     color: brand.text,
-    marginBottom: spacing.xs,
   },
   subtitle: {
     ...typography.caption,
     fontSize: 14,
-    marginBottom: spacing.xs,
   },
   address: {
     ...typography.caption,
     fontSize: 14,
-    marginBottom: spacing.sm,
   },
   footerRow: {
     flexDirection: 'row',

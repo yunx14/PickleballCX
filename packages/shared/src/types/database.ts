@@ -10,6 +10,7 @@ import type {
   RankedPreference,
   MatchRequestStatus,
   SessionInviteStatus,
+  UserNotificationType,
 } from '../constants';
 
 export type Json =
@@ -604,6 +605,54 @@ export interface Database {
           },
         ];
       };
+      user_notifications: {
+        Row: {
+          id: string;
+          user_id: string;
+          type: UserNotificationType;
+          title: string;
+          body: string;
+          event_id: string | null;
+          read_at: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          type: UserNotificationType;
+          title: string;
+          body?: string;
+          event_id?: string | null;
+          read_at?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          user_id?: string;
+          type?: UserNotificationType;
+          title?: string;
+          body?: string;
+          event_id?: string | null;
+          read_at?: string | null;
+          created_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'user_notifications_user_id_fkey',
+            columns: ['user_id'],
+            isOneToOne: false,
+            referencedRelation: 'profiles',
+            referencedColumns: ['id'],
+          },
+          {
+            foreignKeyName: 'user_notifications_event_id_fkey',
+            columns: ['event_id'],
+            isOneToOne: false,
+            referencedRelation: 'events',
+            referencedColumns: ['id'],
+          },
+        ];
+      };
     };
     Views: Record<string, never>;
     Functions: {
@@ -648,6 +697,7 @@ export interface Database {
       ranked_preference: RankedPreference;
       match_request_status: MatchRequestStatus;
       session_invite_status: SessionInviteStatus;
+      user_notification_type: UserNotificationType;
     };
     CompositeTypes: Record<string, never>;
   };
@@ -658,3 +708,4 @@ export type MatchRequest = Database['public']['Tables']['match_requests']['Row']
 export type PlayerConversation = Database['public']['Tables']['player_conversations']['Row'];
 export type PlayerMessage = Database['public']['Tables']['player_messages']['Row'];
 export type SessionInvite = Database['public']['Tables']['session_invites']['Row'];
+export type UserNotification = Database['public']['Tables']['user_notifications']['Row'];

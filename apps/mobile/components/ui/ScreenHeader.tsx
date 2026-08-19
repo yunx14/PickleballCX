@@ -10,14 +10,14 @@ export function ScreenHeader({
   children,
 }: {
   eyebrow?: string;
-  title: string;
+  title?: string;
   subtitle?: string;
   children?: React.ReactNode;
 }) {
   return (
     <View style={styles.container}>
       {eyebrow ? <Text style={styles.eyebrow}>{eyebrow}</Text> : null}
-      <Text style={styles.title}>{title}</Text>
+      {title ? <Text style={styles.title}>{title}</Text> : null}
       {subtitle ? <Text style={styles.subtitle}>{subtitle}</Text> : null}
       {children}
     </View>

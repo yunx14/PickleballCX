@@ -1,5 +1,5 @@
 import { router } from 'expo-router';
-import { useMemo, useState } from 'react';
+import { useMemo } from 'react';
 import {
   ActivityIndicator,
   FlatList,
@@ -10,34 +10,26 @@ import {
   View,
 } from 'react-native';
 
-import { Chip } from '@/components/ui/Chip';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { PrimaryButton } from '@/components/ui/Screen';
 import { SessionCard } from '@/components/ui/SessionCard';
 import { brand } from '@/constants/brand';
 import { spacing } from '@/constants/theme';
-import { useUpcomingEvents } from '@/hooks/useEvents';
+import { useMyEventRsvps, useUpcomingEvents } from '@/hooks/useEvents';
+import { useSessionCardColumns } from '@/hooks/useSessionCardColumns';
 import { useUserLocation } from '@/hooks/useUserLocation';
-import {
-  DISCOVERY_RADIUS_OPTIONS_MI,
-  type DiscoveryRadiusMi,
-  distanceToEventKm,
-} from '@/lib/event-filters';
+import { distanceToEventKm, skillMatchesEvent } from '@/lib/event-filters';
 import { formatDistanceMiles } from '@/lib/geo';
-import { courtsRoute, newSessionRoute, sessionRoute } from '@/lib/routes';
+import { mapTabRoute, sessionRoute } from '@/lib/routes';
 import { useAuth } from '@/providers/AuthProvider';
 
 export function SessionsFeed() {
-  const { profile } = useAuth();
+  const { session, profile } = useAuth();
+  const userId = session?.user.id;
   const isAppAdmin = profile?.is_app_admin ?? false;
-  const [radiusMi, setRadiusMi] = useState<DiscoveryRadiusMi>(50);
+  const { columns, cardWidth, gap } = useSessionCardColumns();
 
-  const {
-    data: locationResult,
-    isLoading: locationLoading,
-    refetch: refetchLocation,
-  } = useUserLocation();
-
+  const { data: locationResult, refetch: refetchLocation } = useUserLocation();
   const location = locationResult?.coords ?? null;
   const locationStatus = locationResult?.status ?? 'unavailable';
 
@@ -47,32 +39,27 @@ export function SessionsFeed() {
     isRefetching,
     refetch: refetchEvents,
     error,
-  } = useUpcomingEvents({
-    location,
-    radiusMi,
-  });
+  } = useUpcomingEvents();
 
-  const isLoading = eventsLoading || locationLoading;
+  const { data: myRsvps, refetch: refetchRsvps } = useMyEventRsvps();
 
-  const locationMessage = useMemo(() => {
-    if (locationLoading) return 'Getting your location…';
-    if (locationStatus === 'granted' && location) {
-      return `Showing open sessions within ${radiusMi} miles of you. Group sessions always appear.`;
-    }
-    if (locationStatus === 'denied') {
-      return 'Location off — showing all open sessions. Enable location to filter by distance.';
-    }
-    return 'Location unavailable — showing all open sessions.';
-  }, [location, locationLoading, locationStatus, radiusMi]);
+  const joinable = useMemo(() => {
+    const rsvpIds = new Set((myRsvps ?? []).map((row) => row.event_id));
 
-  const subtitle = locationMessage;
+    return (events ?? []).filter((event) => {
+      if (userId && event.created_by === userId) return false;
+      if (rsvpIds.has(event.id)) return false;
+      return skillMatchesEvent(profile?.skill_level, event.skill_min, event.skill_max);
+    });
+  }, [events, myRsvps, profile?.skill_level, userId]);
 
   const handleRefresh = () => {
     void refetchLocation();
     void refetchEvents();
+    void refetchRsvps();
   };
 
-  if (isLoading) {
+  if (eventsLoading) {
     return (
       <View style={styles.centered}>
         <ActivityIndicator size="large" color={brand.accent} />
@@ -82,38 +69,24 @@ export function SessionsFeed() {
 
   return (
     <View style={styles.listContainer}>
-      <View style={styles.discoveryHeader}>
-        <Text style={styles.subtitle}>{subtitle}</Text>
-        <View style={styles.radiusRow}>
-          {DISCOVERY_RADIUS_OPTIONS_MI.map((option) => (
-            <Chip
-              key={option}
-              label={`${option} mi`}
-              selected={radiusMi === option}
-              disabled={!location}
-              onPress={() => setRadiusMi(option)}
-            />
-          ))}
-        </View>
-        {locationStatus === 'denied' ? (
-          <Pressable onPress={() => void refetchLocation()} style={styles.secondaryLink}>
-            <Text style={styles.secondaryLinkText}>Try enabling location again</Text>
-          </Pressable>
-        ) : null}
-      </View>
+      {locationStatus === 'denied' ? (
+        <Pressable onPress={() => void refetchLocation()} style={styles.locationPrompt}>
+          <Text style={styles.secondaryLinkText}>Enable location to see distance</Text>
+        </Pressable>
+      ) : null}
 
       {error ? (
-        <View style={styles.container}>
+        <View style={styles.padded}>
           <EmptyState title="Could not load sessions" body={error.message} />
         </View>
-      ) : !events?.length ? (
-        <View style={styles.container}>
+      ) : !joinable.length ? (
+        <View style={styles.padded}>
           <EmptyState
-            title="No sessions yet"
-            body="Schedule a public open session or post to one of your groups. Try a wider radius if you are filtering by location."
+            title="No games to join yet"
+            body="Open the map, tap a court pin, and schedule a session there."
             action={
               isAppAdmin ? (
-                <Pressable onPress={() => router.push(courtsRoute)} style={styles.secondaryLink}>
+                <Pressable onPress={() => router.push(mapTabRoute)} style={styles.secondaryLink}>
                   <Text style={styles.secondaryLinkText}>Manage courts</Text>
                 </Pressable>
               ) : undefined
@@ -122,31 +95,35 @@ export function SessionsFeed() {
         </View>
       ) : (
         <FlatList
-          data={events}
+          key={columns}
+          data={joinable}
           keyExtractor={(item) => item.id}
+          numColumns={columns}
+          style={styles.list}
           refreshControl={
             <RefreshControl refreshing={isRefetching} onRefresh={handleRefresh} />
           }
           contentContainerStyle={styles.listContent}
+          columnWrapperStyle={columns > 1 ? [styles.row, { gap }] : undefined}
           renderItem={({ item }) => {
             const distanceKm = distanceToEventKm(location, item);
             const distanceLabel =
-              distanceKm != null && item.group_id == null
-                ? formatDistanceMiles(distanceKm)
-                : undefined;
+              distanceKm != null ? formatDistanceMiles(distanceKm) : undefined;
 
             return (
-              <SessionCard
-                event={item}
-                distanceLabel={distanceLabel}
-                onPress={() => router.push(sessionRoute(item.id))}
-              />
+              <View style={[styles.cell, { maxWidth: cardWidth, marginBottom: gap }]}>
+                <SessionCard
+                  event={item}
+                  distanceLabel={distanceLabel}
+                  onPress={() => router.push(sessionRoute(item.id))}
+                />
+              </View>
             );
           }}
         />
       )}
       <View style={styles.footer}>
-        <PrimaryButton label="Schedule session" onPress={() => router.push(newSessionRoute())} />
+        <PrimaryButton label="Find a court" onPress={() => router.push(mapTabRoute)} />
       </View>
     </View>
   );
@@ -163,31 +140,30 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: brand.background,
   },
-  discoveryHeader: {
+  locationPrompt: {
     paddingHorizontal: spacing.xl,
     paddingTop: spacing.sm,
-    paddingBottom: spacing.sm,
-    gap: spacing.sm,
+    paddingBottom: spacing.xs,
   },
-  subtitle: {
-    fontSize: 14,
-    lineHeight: 20,
-    color: brand.muted,
-  },
-  radiusRow: {
-    flexDirection: 'row',
-    gap: spacing.sm,
-    flexWrap: 'wrap',
-  },
-  container: {
+  padded: {
     flex: 1,
     paddingHorizontal: spacing.xl,
     paddingTop: spacing.sm,
+  },
+  list: {
+    flex: 1,
+    width: '100%',
   },
   listContent: {
     paddingHorizontal: spacing.xl,
     paddingTop: spacing.sm,
     paddingBottom: spacing.lg,
+  },
+  row: {
+    flex: 1,
+  },
+  cell: {
+    flex: 1,
   },
   footer: {
     padding: spacing.xl,

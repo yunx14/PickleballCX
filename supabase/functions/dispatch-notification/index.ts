@@ -7,6 +7,7 @@ interface WebhookPayload {
   table: string;
   type: string;
   record: Record<string, unknown>;
+  recipient_ids?: unknown;
 }
 
 interface PushMessage {
@@ -14,6 +15,12 @@ interface PushMessage {
   title: string;
   body: string;
   data?: Record<string, string>;
+}
+
+function parseRecipientIds(payload: WebhookPayload): string[] {
+  const raw = payload.recipient_ids;
+  if (!Array.isArray(raw)) return [];
+  return [...new Set(raw.map((id) => String(id)).filter((id) => id.length > 0))];
 }
 
 function formatSessionTime(iso: string): string {
@@ -80,11 +87,21 @@ async function buildNotifications(
   const { table, record } = payload;
 
   if (table === 'events') {
+    if (payload.type === 'UPDATE') {
+      return buildEventUpdatedNotifications(supabase, payload, record);
+    }
+    if (payload.type === 'DELETE') {
+      return buildEventCancelledNotifications(supabase, payload, record);
+    }
     return buildNewSessionNotifications(supabase, record);
   }
 
   if (table === 'event_comments') {
-    return buildCommentNotifications(supabase, record);
+    return buildCommentNotifications(supabase, payload, record);
+  }
+
+  if (table === 'event_rsvps') {
+    return buildRsvpNotifications(supabase, payload, record);
   }
 
   if (table === 'group_announcements') {
@@ -160,6 +177,7 @@ async function buildNewSessionNotifications(
 
 async function buildCommentNotifications(
   supabase: ReturnType<typeof createClient>,
+  payload: WebhookPayload,
   record: Record<string, unknown>,
 ): Promise<PushMessage[]> {
   const eventId = String(record.event_id ?? '');
@@ -179,29 +197,34 @@ async function buildCommentNotifications(
     return [];
   }
 
-  const { data: rsvps, error: rsvpError } = await supabase
-    .from('event_rsvps')
-    .select('user_id')
-    .eq('event_id', eventId)
-    .in('status', ['going', 'maybe']);
+  let recipientIds = parseRecipientIds(payload);
 
-  if (rsvpError) {
-    console.error('Failed to load RSVPs for comment push', rsvpError.message);
-    return [];
-  }
+  if (recipientIds.length === 0) {
+    const { data: rsvps, error: rsvpError } = await supabase
+      .from('event_rsvps')
+      .select('user_id')
+      .eq('event_id', eventId)
+      .in('status', ['going', 'maybe', 'waitlist']);
 
-  const recipientIds = new Set<string>();
-  if (event.created_by && event.created_by !== authorId) {
-    recipientIds.add(event.created_by);
-  }
-
-  for (const rsvp of rsvps ?? []) {
-    if (rsvp.user_id !== authorId) {
-      recipientIds.add(rsvp.user_id);
+    if (rsvpError) {
+      console.error('Failed to load RSVPs for comment push', rsvpError.message);
+      return [];
     }
+
+    const ids = new Set<string>();
+    if (event.created_by && event.created_by !== authorId) {
+      ids.add(event.created_by);
+    }
+
+    for (const rsvp of rsvps ?? []) {
+      if (rsvp.user_id !== authorId) {
+        ids.add(rsvp.user_id);
+      }
+    }
+    recipientIds = [...ids];
   }
 
-  const tokens = await fetchTokensForUsers(supabase, [...recipientIds]);
+  const tokens = await fetchTokensForUsers(supabase, recipientIds);
   const court = event.courts && !Array.isArray(event.courts) ? event.courts : null;
   const courtName = court?.name?.trim() || 'your session';
   const preview = body.length > 80 ? `${body.slice(0, 77)}…` : body;
@@ -211,6 +234,105 @@ async function buildCommentNotifications(
     title: 'New comment',
     body: `${courtName}: ${preview}`,
     data: { eventId, screen: 'session' },
+  }));
+}
+
+async function courtNameForEvent(
+  supabase: ReturnType<typeof createClient>,
+  eventId: string,
+  courtId?: string,
+): Promise<string> {
+  if (eventId) {
+    const { data: event } = await supabase
+      .from('events')
+      .select('courts ( name )')
+      .eq('id', eventId)
+      .maybeSingle();
+    const court = event?.courts && !Array.isArray(event.courts) ? event.courts : null;
+    if (court?.name?.trim()) return court.name.trim();
+  }
+
+  if (courtId) {
+    const { data: court } = await supabase.from('courts').select('name').eq('id', courtId).maybeSingle();
+    if (court?.name?.trim()) return court.name.trim();
+  }
+
+  return 'a session';
+}
+
+async function buildRsvpNotifications(
+  supabase: ReturnType<typeof createClient>,
+  payload: WebhookPayload,
+  record: Record<string, unknown>,
+): Promise<PushMessage[]> {
+  const eventId = String(record.event_id ?? '');
+  const actorId = String(record.user_id ?? '');
+  const status = String(record.status ?? '');
+  const recipientIds = parseRecipientIds(payload);
+
+  if (!eventId || !actorId || recipientIds.length === 0) return [];
+
+  const { data: actor } = await supabase
+    .from('profiles')
+    .select('display_name')
+    .eq('id', actorId)
+    .maybeSingle();
+
+  const actorName = actor?.display_name?.trim() || 'A player';
+  const courtName = await courtNameForEvent(supabase, eventId);
+  const statusLabel =
+    status === 'waitlist' ? 'waitlisted' : status === 'not_going' ? 'not going' : status || 'RSVP';
+  const tokens = await fetchTokensForUsers(supabase, recipientIds);
+
+  return tokens.map((token) => ({
+    to: token,
+    title: 'New RSVP',
+    body: `${actorName} marked ${statusLabel} · ${courtName}`,
+    data: { eventId, screen: 'session' },
+  }));
+}
+
+async function buildEventUpdatedNotifications(
+  supabase: ReturnType<typeof createClient>,
+  payload: WebhookPayload,
+  record: Record<string, unknown>,
+): Promise<PushMessage[]> {
+  const eventId = String(record.id ?? '');
+  const recipientIds = parseRecipientIds(payload);
+  if (!eventId || recipientIds.length === 0) return [];
+
+  const courtName = await courtNameForEvent(supabase, eventId, String(record.court_id ?? ''));
+  const tokens = await fetchTokensForUsers(supabase, recipientIds);
+
+  return tokens.map((token) => ({
+    to: token,
+    title: 'Session updated',
+    body: `${courtName} was updated`,
+    data: { eventId, screen: 'session' },
+  }));
+}
+
+async function buildEventCancelledNotifications(
+  supabase: ReturnType<typeof createClient>,
+  payload: WebhookPayload,
+  record: Record<string, unknown>,
+): Promise<PushMessage[]> {
+  const eventId = String(record.id ?? '');
+  const recipientIds = parseRecipientIds(payload);
+  if (recipientIds.length === 0) return [];
+
+  const courtName = await courtNameForEvent(
+    supabase,
+    eventId,
+    record.court_id ? String(record.court_id) : undefined,
+  );
+  const tokens = await fetchTokensForUsers(supabase, recipientIds);
+
+  return tokens.map((token) => ({
+    to: token,
+    title: 'Session cancelled',
+    body: `${courtName} was cancelled`,
+    data: eventId ? { eventId, screen: 'session' } : { screen: 'session' },
   }));
 }
 

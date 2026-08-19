@@ -12,6 +12,7 @@ import { useEffect, useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
 import { Linking, Pressable, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
 
+import { Avatar } from '@/components/ui/Avatar';
 import { Card } from '@/components/ui/Card';
 import {
   ErrorText,
@@ -19,13 +20,13 @@ import {
   PrimaryButton,
   TextField,
 } from '@/components/ui/Screen';
-import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import { SkillPicker } from '@/components/ui/SkillPicker';
 import { EnumPicker } from '@/components/ui/EnumPicker';
 import { brand } from '@/constants/brand';
 import { SUPPORT_EMAIL, supportMailtoUrl } from '@/constants/support';
 import { spacing, typography } from '@/constants/theme';
-import { courtsRoute, privacyPolicyRoute, termsOfServiceRoute } from '@/lib/routes';
+import { removeProfileAvatar, uploadProfileAvatar } from '@/lib/avatar-upload';
+import { mapTabRoute, privacyPolicyRoute, termsOfServiceRoute } from '@/lib/routes';
 import { saveProfileDiscoveryFields } from '@/lib/profile-save';
 import { useAuth } from '@/providers/AuthProvider';
 
@@ -34,6 +35,7 @@ export default function ProfileScreen() {
   const isAppAdmin = profile?.is_app_admin ?? false;
   const [formError, setFormError] = useState<string>();
   const [saveMessage, setSaveMessage] = useState<string>();
+  const [avatarBusy, setAvatarBusy] = useState(false);
 
   const {
     control,
@@ -66,12 +68,37 @@ export default function ProfileScreen() {
     });
   }, [profile, reset]);
 
-  const initials = (profile?.display_name ?? 'P')
-    .split(' ')
-    .map((part) => part[0])
-    .join('')
-    .slice(0, 2)
-    .toUpperCase();
+  const onChangePhoto = async () => {
+    if (!profile?.id || avatarBusy) return;
+    setFormError(undefined);
+    setSaveMessage(undefined);
+    setAvatarBusy(true);
+    const result = await uploadProfileAvatar(profile.id);
+    setAvatarBusy(false);
+    if (result.error) {
+      setFormError(result.error);
+      return;
+    }
+    if (result.url) {
+      await refreshProfile();
+      setSaveMessage('Profile photo updated.');
+    }
+  };
+
+  const onRemovePhoto = async () => {
+    if (!profile?.id || avatarBusy) return;
+    setFormError(undefined);
+    setSaveMessage(undefined);
+    setAvatarBusy(true);
+    const result = await removeProfileAvatar(profile.id);
+    setAvatarBusy(false);
+    if (result.error) {
+      setFormError(result.error);
+      return;
+    }
+    await refreshProfile();
+    setSaveMessage('Profile photo removed.');
+  };
 
   const onSubmit = handleSubmit(
     async (values) => {
@@ -100,20 +127,28 @@ export default function ProfileScreen() {
   return (
     <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
       <View style={styles.avatarRow}>
-        <View style={styles.avatar}>
-          <Text style={styles.avatarText}>{initials}</Text>
-        </View>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Change profile photo"
+          onPress={() => void onChangePhoto()}
+          disabled={avatarBusy}
+          style={({ pressed }) => [pressed && styles.avatarPressed]}>
+          <Avatar uri={profile?.avatar_url} name={profile?.display_name} size={72} />
+        </Pressable>
         <View style={styles.avatarMeta}>
           <Text style={styles.displayName}>{profile?.display_name ?? 'Player'}</Text>
-          <Text style={styles.skillLine}>Shown on RSVP lists and Find players</Text>
+          <Pressable onPress={() => void onChangePhoto()} disabled={avatarBusy}>
+            <Text style={styles.photoLink}>
+              {avatarBusy ? 'Updating photo…' : profile?.avatar_url ? 'Change photo' : 'Add photo'}
+            </Text>
+          </Pressable>
+          {profile?.avatar_url ? (
+            <Pressable onPress={() => void onRemovePhoto()} disabled={avatarBusy}>
+              <Text style={styles.removePhotoLink}>Remove photo</Text>
+            </Pressable>
+          ) : null}
         </View>
       </View>
-
-      <ScreenHeader
-        eyebrow="Account"
-        title="Your profile"
-        subtitle="Update how other players and your groups see you."
-      />
 
       <Card>
         {isAppAdmin ? (
@@ -264,7 +299,7 @@ export default function ProfileScreen() {
       />
 
       {isAppAdmin ? (
-        <PrimaryButton label="Manage courts" onPress={() => router.push(courtsRoute)} />
+        <PrimaryButton label="Manage courts" onPress={() => router.push(mapTabRoute)} />
       ) : null}
 
       <PrimaryButton label="Sign out" onPress={signOut} />
@@ -302,20 +337,8 @@ const styles = StyleSheet.create({
     gap: spacing.lg,
     marginBottom: spacing.sm,
   },
-  avatar: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
-    backgroundColor: brand.accentSurface,
-    borderWidth: 2,
-    borderColor: brand.accent,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  avatarText: {
-    fontSize: 22,
-    fontWeight: '800',
-    color: brand.accent,
+  avatarPressed: {
+    opacity: 0.8,
   },
   avatarMeta: {
     flex: 1,
@@ -326,9 +349,15 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     color: brand.text,
   },
-  skillLine: {
-    ...typography.caption,
+  photoLink: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: brand.accent,
+  },
+  removePhotoLink: {
     fontSize: 14,
+    fontWeight: '600',
+    color: brand.muted,
   },
   label: {
     ...typography.eyebrow,

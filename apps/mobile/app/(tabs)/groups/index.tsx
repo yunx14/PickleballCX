@@ -12,7 +12,6 @@ import {
 import { Card } from '@/components/ui/Card';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { PrimaryButton } from '@/components/ui/Screen';
-import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import { brand } from '@/constants/brand';
 import { spacing } from '@/constants/theme';
 import { useGroups } from '@/hooks/useGroups';
@@ -44,10 +43,6 @@ export default function GroupsScreen() {
   if (!groups?.length) {
     return (
       <View style={styles.container}>
-        <ScreenHeader
-          title="Groups"
-          subtitle="Create a crew or join with an invite code."
-        />
         <EmptyState
           title="No groups yet"
           body="Create a group for your regular pickleball crew or join with an invite code. Groups keep courts, sessions, and members in one place."
@@ -69,10 +64,6 @@ export default function GroupsScreen() {
         contentContainerStyle={styles.listContent}
         ListHeaderComponent={
           <View style={styles.headerBlock}>
-            <ScreenHeader
-              title="Groups"
-              subtitle="Your pickleball crews and invite codes."
-            />
             <PrimaryButton label="Create group" onPress={() => router.push(createGroupRoute)} />
             <Pressable onPress={() => router.push(joinGroupRoute)} style={styles.secondaryLink}>
               <Text style={styles.secondaryLinkText}>Join with invite code</Text>

@@ -1,43 +1,22 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { createEventSchema, type CreateEventInput } from '@pickleballcx/shared';
-import { router, useLocalSearchParams } from 'expo-router';
-import { useMemo, useState } from 'react';
+import { Redirect, router, useLocalSearchParams } from 'expo-router';
+import { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
-import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, ScrollView, StyleSheet, View } from 'react-native';
 
 import { SessionForm } from '@/components/sessions/SessionForm';
 import { PrimaryButton, FormScreenContainer, Subtitle, Title } from '@/components/ui/Screen';
 import { brand } from '@/constants/brand';
-import { useCourts } from '@/hooks/useCourts';
+import { useCourt } from '@/hooks/useCourts';
 import { useCreateEvent } from '@/hooks/useEvents';
-import { useGroups } from '@/hooks/useGroups';
-import { useMatchRequests } from '@/hooks/useMatchRequests';
-import { useCreateSessionInvite } from '@/hooks/useSessionInvites';
-import { courtsRoute, playerRequestsRoute, sessionRoute } from '@/lib/routes';
+import { mapTabRoute, sessionRoute } from '@/lib/routes';
 
 export default function NewSessionScreen() {
-  const { groupId: presetGroupId, inviteMatchRequestId } = useLocalSearchParams<{
-    groupId?: string;
-    inviteMatchRequestId?: string;
-  }>();
-  const [selectedGroupId, setSelectedGroupId] = useState<string | null>(presetGroupId ?? null);
-  const [limitToGroup, setLimitToGroup] = useState(!!presetGroupId);
-  const { data: courts, isLoading: courtsLoading } = useCourts();
-  const { data: groups } = useGroups();
+  const { courtId } = useLocalSearchParams<{ courtId?: string }>();
+  const { data: court, isLoading: courtLoading, error: courtError } = useCourt(courtId ?? '');
   const createEvent = useCreateEvent();
-  const createSessionInvite = useCreateSessionInvite();
-  const { data: matchRequests } = useMatchRequests();
   const [formError, setFormError] = useState<string>();
-
-  const inviteTarget = useMemo(() => {
-    if (!inviteMatchRequestId) return null;
-    return (matchRequests ?? []).find((request) => request.id === inviteMatchRequestId) ?? null;
-  }, [inviteMatchRequestId, matchRequests]);
-
-  const selectedGroup = useMemo(
-    () => groups?.find((group) => group.id === selectedGroupId) ?? null,
-    [groups, selectedGroupId],
-  );
 
   const defaultStart = new Date();
   defaultStart.setMinutes(0, 0, 0);
@@ -46,11 +25,12 @@ export default function NewSessionScreen() {
   const {
     control,
     handleSubmit,
+    reset,
     formState: { isSubmitting, errors },
   } = useForm<CreateEventInput>({
     resolver: zodResolver(createEventSchema),
     defaultValues: {
-      courtId: '',
+      courtId: courtId ?? '',
       startsAt: defaultStart,
       sessionType: undefined,
       maxPlayers: undefined,
@@ -58,18 +38,18 @@ export default function NewSessionScreen() {
     },
   });
 
+  useEffect(() => {
+    if (courtId) {
+      reset((values) => ({ ...values, courtId }));
+    }
+  }, [courtId, reset]);
+
   const onSubmit = handleSubmit(
     async (values) => {
       setFormError(undefined);
 
-      if (limitToGroup && !selectedGroupId) {
-        setFormError('Select a group or turn off group-only visibility.');
-        return;
-      }
-
       try {
         const { id } = await createEvent.mutateAsync({
-          groupId: limitToGroup ? selectedGroupId : null,
           courtId: values.courtId,
           startsAt: values.startsAt,
           sessionType: values.sessionType,
@@ -78,15 +58,6 @@ export default function NewSessionScreen() {
           skillMax: values.skillMax,
           description: values.description,
         });
-
-        if (inviteTarget?.status === 'accepted') {
-          await createSessionInvite.mutateAsync({
-            eventId: id,
-            invitedUserId: inviteTarget.other_user_id,
-          });
-          router.replace(playerRequestsRoute);
-          return;
-        }
 
         router.push(sessionRoute(id));
       } catch (error) {
@@ -98,7 +69,11 @@ export default function NewSessionScreen() {
     },
   );
 
-  if (courtsLoading) {
+  if (!courtId) {
+    return <Redirect href={mapTabRoute} />;
+  }
+
+  if (courtLoading) {
     return (
       <View style={styles.centered}>
         <ActivityIndicator size="large" color={brand.accent} />
@@ -106,91 +81,23 @@ export default function NewSessionScreen() {
     );
   }
 
-  if (!courts?.length) {
+  if (courtError || !court) {
     return (
       <FormScreenContainer>
-        <Title>Add a court first</Title>
-        <Subtitle>
-          Sessions need a court from the global catalog. Ask an app admin to add venues, or add one
-          yourself if you have admin access.
-        </Subtitle>
-        <PrimaryButton label="Browse courts" onPress={() => router.push(courtsRoute)} />
-        <PrimaryButton label="Go back" onPress={() => router.back()} />
+        <Title>Court not found</Title>
+        <Subtitle>Pick a court on the map to schedule a session.</Subtitle>
+        <PrimaryButton label="Open map" onPress={() => router.replace(mapTabRoute)} />
       </FormScreenContainer>
     );
   }
 
   return (
     <ScrollView contentContainerStyle={{ flexGrow: 1 }} keyboardShouldPersistTaps="handled">
-        <FormScreenContainer>
-        {inviteTarget ? (
-          <Subtitle>
-            Create a session for {inviteTarget.other_display_name}. We&apos;ll send them an invite
-            when you save.
-          </Subtitle>
-        ) : null}
-        <View style={styles.groupSection}>
-          <Text style={styles.sectionTitle}>Visibility</Text>
-          <Pressable
-            onPress={() => {
-              setLimitToGroup(false);
-              setSelectedGroupId(null);
-            }}
-            style={[styles.option, !limitToGroup && styles.optionSelected]}>
-            <Text style={[styles.optionText, !limitToGroup && styles.optionTextSelected]}>
-              Public — anyone can discover and RSVP
-            </Text>
-          </Pressable>
-          <Pressable
-            onPress={() => {
-              setLimitToGroup(true);
-              if (presetGroupId) setSelectedGroupId(presetGroupId);
-            }}
-            style={[styles.option, limitToGroup && styles.optionSelected]}>
-            <Text style={[styles.optionText, limitToGroup && styles.optionTextSelected]}>
-              Group only — members of a group can see it
-            </Text>
-          </Pressable>
-
-          {limitToGroup ? (
-            groups?.length ? (
-              <>
-                <Text style={styles.groupPickerLabel}>Select group</Text>
-                {groups.map((group) => {
-                  const selected = selectedGroupId === group.id;
-                  return (
-                    <Pressable
-                      key={group.id}
-                      onPress={() => setSelectedGroupId(group.id)}
-                      style={[styles.groupOption, selected && styles.optionSelected]}>
-                      <Text style={[styles.optionText, selected && styles.optionTextSelected]}>
-                        {group.name}
-                      </Text>
-                    </Pressable>
-                  );
-                })}
-              </>
-            ) : (
-              <Text style={styles.noGroups}>
-                You are not in any groups yet. Create or join a group, or schedule a public session
-                instead.
-              </Text>
-            )
-          ) : null}
-
-          {limitToGroup && selectedGroup ? (
-            <Text style={styles.groupHint}>Posting to {selectedGroup.name}</Text>
-          ) : null}
-        </View>
-
+      <FormScreenContainer>
         <SessionForm
           title="Schedule session"
-          subtitle={
-            limitToGroup
-              ? 'Pick a court, time, and session type. Only your group will see this session.'
-              : 'Pick a court, time, and session type. This open session will be visible to everyone.'
-          }
-          courts={courts}
+          subtitle="Anyone nearby can discover this session and RSVP."
+          lockedCourt={court}
           control={control}
           errors={errors}
           formError={formError}
@@ -210,60 +117,5 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: brand.background,
-  },
-  groupSection: {
-    marginBottom: 24,
-    gap: 10,
-  },
-  sectionTitle: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: brand.text,
-    marginBottom: 4,
-  },
-  option: {
-    backgroundColor: brand.surface,
-    borderWidth: 1,
-    borderColor: brand.borderStrong,
-    borderRadius: 12,
-    paddingVertical: 14,
-    paddingHorizontal: 16,
-  },
-  groupOption: {
-    backgroundColor: brand.surface,
-    borderWidth: 1,
-    borderColor: brand.borderStrong,
-    borderRadius: 12,
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-  },
-  optionSelected: {
-    borderColor: brand.accent,
-    backgroundColor: brand.accentSurface,
-  },
-  optionText: {
-    fontSize: 15,
-    color: brand.muted,
-    fontWeight: '500',
-  },
-  optionTextSelected: {
-    color: brand.accent,
-    fontWeight: '800',
-  },
-  groupPickerLabel: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: brand.muted,
-    marginTop: 8,
-  },
-  groupHint: {
-    fontSize: 14,
-    color: brand.accent,
-    fontWeight: '600',
-  },
-  noGroups: {
-    fontSize: 14,
-    lineHeight: 20,
-    color: brand.muted,
   },
 });

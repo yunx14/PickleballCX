@@ -6,12 +6,7 @@ import {
   useNotificationNavigation,
   usePushNotifications,
 } from '@/hooks/usePushNotifications';
-import {
-  groupAnnouncementsRoute,
-  playerMessageRoute,
-  playerRequestsRoute,
-  sessionRoute,
-} from '@/lib/routes';
+import { homeTabRoute, sessionRoute } from '@/lib/routes';
 
 const isNativePlatform = Platform.OS === 'ios' || Platform.OS === 'android';
 
@@ -34,28 +29,10 @@ function NativePushNotificationRegistration() {
       return;
     }
 
-    if (screen === 'announcements' && typeof data.groupId === 'string') {
-      router.push(groupAnnouncementsRoute(data.groupId));
-      return;
-    }
-
-    if (screen === 'match_requests') {
-      router.push(playerRequestsRoute);
-      return;
-    }
-
-    if (screen === 'player_message' && typeof data.matchRequestId === 'string') {
-      router.push(playerMessageRoute(data.matchRequestId));
-      return;
-    }
-
-    if (screen === 'session_invite') {
-      router.push(playerRequestsRoute);
-    }
+    router.push(homeTabRoute);
   }, []);
 
   useNotificationNavigation(handleNavigate);
 
   return null;
 }
-

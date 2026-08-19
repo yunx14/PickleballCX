@@ -20,7 +20,7 @@ import {
   groupAnnouncementsRoute,
   groupMembersRoute,
   groupSessionsRoute,
-  newSessionRoute,
+  mapTabRoute,
 } from '@/lib/routes';
 
 export default function GroupHomeScreen() {
@@ -81,7 +81,7 @@ export default function GroupHomeScreen() {
 
       <PrimaryButton
         label="Schedule session"
-        onPress={() => router.push(newSessionRoute(groupId))}
+        onPress={() => router.push(mapTabRoute)}
       />
 
       {pinnedAnnouncements.length > 0 ? (

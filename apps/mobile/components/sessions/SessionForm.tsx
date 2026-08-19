@@ -14,7 +14,6 @@ import {
   Modal,
   Platform,
   Pressable,
-  ScrollView,
   StyleSheet,
   Text,
   TextInput,
@@ -47,7 +46,7 @@ function mergeTimePart(current: Date, picked: Date): Date {
 export function SessionForm({
   title,
   subtitle,
-  courts,
+  lockedCourt,
   control,
   errors,
   formError,
@@ -58,7 +57,7 @@ export function SessionForm({
 }: {
   title: string;
   subtitle: string;
-  courts: Court[];
+  lockedCourt: Court;
   control: Control<CreateEventInput>;
   errors: FieldErrors<CreateEventInput>;
   formError?: string;
@@ -75,16 +74,10 @@ export function SessionForm({
       <ErrorText message={errors.courtId?.message ?? errors.sessionType?.message} />
 
       <FieldLabel>Court</FieldLabel>
-      <Controller
-        control={control}
-        name="courtId"
-        render={({ field: { onChange, value }, fieldState: { error } }) => (
-          <>
-            <CourtDropdown courts={courts} value={value} onChange={onChange} />
-            <ErrorText message={error?.message} />
-          </>
-        )}
-      />
+      <View style={styles.lockedCourt}>
+        <Text style={styles.lockedCourtName}>{lockedCourt.name}</Text>
+        <Text style={styles.lockedCourtAddress}>{lockedCourt.address}</Text>
+      </View>
 
       <FieldLabel>Date & time</FieldLabel>
       <Controller
@@ -276,75 +269,6 @@ function DateTimeDropdown({
   );
 }
 
-function CourtDropdown({
-  courts,
-  value,
-  onChange,
-}: {
-  courts: Court[];
-  value?: string;
-  onChange: (courtId: string) => void;
-}) {
-  const [open, setOpen] = useState(false);
-  const selected = courts.find((court) => court.id === value);
-
-  return (
-    <>
-      <Pressable
-        accessibilityRole="button"
-        onPress={() => setOpen(true)}
-        style={({ pressed }) => [styles.dropdownTrigger, pressed && styles.dropdownTriggerPressed]}>
-        <View style={styles.dropdownTriggerContent}>
-          {selected ? (
-            <>
-              <Text style={styles.dropdownValue} numberOfLines={1}>
-                {selected.name}
-              </Text>
-              <Text style={styles.dropdownSubvalue} numberOfLines={1}>
-                {selected.address}
-              </Text>
-            </>
-          ) : (
-            <Text style={styles.dropdownPlaceholder}>Select a court</Text>
-          )}
-        </View>
-        <Text style={styles.dropdownChevron}>▾</Text>
-      </Pressable>
-
-      <Modal visible={open} transparent animationType="fade" onRequestClose={() => setOpen(false)}>
-        <View style={styles.modalBackdrop}>
-          <Pressable style={styles.modalBackdropPress} onPress={() => setOpen(false)} />
-          <View style={styles.modalSheet}>
-            <Text style={styles.modalTitle}>Select court</Text>
-            <ScrollView style={styles.modalList} keyboardShouldPersistTaps="handled">
-              {courts.map((court) => {
-                const isSelected = value === court.id;
-                return (
-                  <Pressable
-                    key={court.id}
-                    onPress={() => {
-                      onChange(court.id);
-                      setOpen(false);
-                    }}
-                    style={[styles.modalOption, isSelected && styles.optionSelected]}>
-                    <Text style={[styles.optionText, isSelected && styles.optionTextSelected]}>
-                      {court.name}
-                    </Text>
-                    <Text style={styles.optionSubtext}>{court.address}</Text>
-                  </Pressable>
-                );
-              })}
-            </ScrollView>
-            <Pressable onPress={() => setOpen(false)} style={styles.modalCancel}>
-              <Text style={styles.modalCancelText}>Cancel</Text>
-            </Pressable>
-          </View>
-        </View>
-      </Modal>
-    </>
-  );
-}
-
 function OptionPicker<T extends string>({
   options,
   labels,
@@ -422,6 +346,25 @@ const styles = StyleSheet.create({
   notesInput: {
     minHeight: 90,
     paddingTop: 14,
+  },
+  lockedCourt: {
+    backgroundColor: brand.surface,
+    borderWidth: 1,
+    borderColor: brand.border,
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    marginBottom: 16,
+  },
+  lockedCourtName: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: brand.text,
+  },
+  lockedCourtAddress: {
+    fontSize: 13,
+    color: brand.muted,
+    marginTop: 2,
   },
   option: {
     backgroundColor: brand.surface,
