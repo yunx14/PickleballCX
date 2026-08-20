@@ -16,13 +16,15 @@ export function WebGoogleMap({
   center,
   zoom = 14,
   height,
+  fill = false,
   interactive = true,
   markers,
   onMarkerPress,
 }: {
   center: { lat: number; lng: number };
   zoom?: number;
-  height: number;
+  height?: number;
+  fill?: boolean;
   interactive?: boolean;
   markers: WebGoogleMapMarker[];
   onMarkerPress?: (id: string) => void;
@@ -80,7 +82,7 @@ export function WebGoogleMap({
   }, [center.lat, center.lng, interactive, markerKey, zoom]);
 
   return (
-    <View style={[styles.host, { height }]}>
+    <View style={[styles.host, fill ? styles.fill : { height }]}>
       {createElement('div', {
         ref: hostRef,
         style: { width: '100%', height: '100%' },
@@ -100,6 +102,9 @@ const styles = StyleSheet.create({
     backgroundColor: brand.surfaceElevated,
     position: 'relative',
     overflow: 'hidden',
+  },
+  fill: {
+    flex: 1,
   },
   error: {
     ...StyleSheet.absoluteFill,

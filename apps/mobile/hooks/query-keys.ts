@@ -26,6 +26,8 @@ export const queryKeys = {
     myRsvps: (userId?: string) => [...queryKeys.events.all, 'myRsvps', userId] as const,
     mine: (userId?: string, timeframe?: 'upcoming' | 'past') =>
       [...queryKeys.events.all, 'mine', userId, timeframe] as const,
+    hostedUpcoming: (userId?: string) =>
+      [...queryKeys.events.all, 'hostedUpcoming', userId] as const,
   },
   notifications: {
     all: ['notifications'] as const,

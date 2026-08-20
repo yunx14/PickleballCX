@@ -9,7 +9,7 @@ import { brand } from '@/constants/brand';
 import { spacing } from '@/constants/theme';
 import { useCourts } from '@/hooks/useCourts';
 import { useUserLocation } from '@/hooks/useUserLocation';
-import { formatDistanceMiles, hasValidCoordinates } from '@/lib/geo';
+import { hasValidCoordinates } from '@/lib/geo';
 import { distanceToCoordsKm } from '@/lib/proximity';
 import { courtRoute, newCourtRoute } from '@/lib/routes';
 import { useAuth } from '@/providers/AuthProvider';
@@ -86,27 +86,12 @@ export default function CourtsMapScreen() {
           />
         </View>
       ) : (
-        <>
-          <CourtsMap
-            courts={courtsToShow}
-            userLat={location?.lat}
-            userLng={location?.lng}
-            onSelectCourt={(courtId) => router.push(courtRoute(courtId))}
-          />
-          <View style={styles.footer}>
-            <Text style={styles.footerText}>
-              {courtsToShow.length} court{courtsToShow.length === 1 ? '' : 's'}
-              {location && courtsToShow[0]
-                ? ` · nearest ${formatDistanceMiles(
-                    distanceToCoordsKm(location, {
-                      lat: courtsToShow[0].lat,
-                      lng: courtsToShow[0].lng,
-                    }) ?? 0,
-                  )}`
-                : ''}
-            </Text>
-          </View>
-        </>
+        <CourtsMap
+          courts={courtsToShow}
+          userLat={location?.lat}
+          userLng={location?.lng}
+          onSelectCourt={(courtId) => router.push(courtRoute(courtId))}
+        />
       )}
     </View>
   );
@@ -139,17 +124,5 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.xl,
     paddingTop: spacing.md,
     gap: spacing.md,
-  },
-  footer: {
-    paddingHorizontal: spacing.xl,
-    paddingVertical: spacing.sm,
-    borderTopWidth: 1,
-    borderTopColor: brand.border,
-    backgroundColor: brand.surfaceElevated,
-  },
-  footerText: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: brand.muted,
   },
 });

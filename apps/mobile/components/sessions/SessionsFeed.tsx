@@ -14,8 +14,13 @@ import { EmptyState } from '@/components/ui/EmptyState';
 import { PrimaryButton } from '@/components/ui/Screen';
 import { SessionCard } from '@/components/ui/SessionCard';
 import { brand } from '@/constants/brand';
-import { spacing } from '@/constants/theme';
-import { useMyEventRsvps, useUpcomingEvents } from '@/hooks/useEvents';
+import { spacing, typography } from '@/constants/theme';
+import {
+  useMyEventRsvps,
+  useMyHostedUpcomingEvents,
+  useUpcomingEvents,
+  type EventRow,
+} from '@/hooks/useEvents';
 import { useSessionCardColumns } from '@/hooks/useSessionCardColumns';
 import { useUserLocation } from '@/hooks/useUserLocation';
 import { distanceToEventKm, skillMatchesEvent } from '@/lib/event-filters';
@@ -42,6 +47,9 @@ export function SessionsFeed() {
   } = useUpcomingEvents();
 
   const { data: myRsvps, refetch: refetchRsvps } = useMyEventRsvps();
+  const hostedQuery = useMyHostedUpcomingEvents();
+  const hostedEvents = hostedQuery.data?.events ?? [];
+  const goingByEventId = hostedQuery.data?.goingByEventId ?? {};
 
   const joinable = useMemo(() => {
     const rsvpIds = new Set((myRsvps ?? []).map((row) => row.event_id));
@@ -57,6 +65,23 @@ export function SessionsFeed() {
     void refetchLocation();
     void refetchEvents();
     void refetchRsvps();
+    void hostedQuery.refetch();
+  };
+
+  const renderSessionCard = (item: EventRow, goingCount?: number) => {
+    const distanceKm = distanceToEventKm(location, item);
+    const distanceLabel = distanceKm != null ? formatDistanceMiles(distanceKm) : undefined;
+
+    return (
+      <View style={[styles.cell, { maxWidth: cardWidth, marginBottom: gap }]}>
+        <SessionCard
+          event={item}
+          goingCount={goingCount}
+          distanceLabel={distanceLabel}
+          onPress={() => router.push(sessionRoute(item.id))}
+        />
+      </View>
+    );
   };
 
   if (eventsLoading) {
@@ -79,20 +104,6 @@ export function SessionsFeed() {
         <View style={styles.padded}>
           <EmptyState title="Could not load sessions" body={error.message} />
         </View>
-      ) : !joinable.length ? (
-        <View style={styles.padded}>
-          <EmptyState
-            title="No games to join yet"
-            body="Open the map, tap a court pin, and schedule a session there."
-            action={
-              isAppAdmin ? (
-                <Pressable onPress={() => router.push(mapTabRoute)} style={styles.secondaryLink}>
-                  <Text style={styles.secondaryLinkText}>Manage courts</Text>
-                </Pressable>
-              ) : undefined
-            }
-          />
-        </View>
       ) : (
         <FlatList
           key={columns}
@@ -101,25 +112,53 @@ export function SessionsFeed() {
           numColumns={columns}
           style={styles.list}
           refreshControl={
-            <RefreshControl refreshing={isRefetching} onRefresh={handleRefresh} />
+            <RefreshControl
+              refreshing={isRefetching || hostedQuery.isRefetching}
+              onRefresh={handleRefresh}
+            />
           }
           contentContainerStyle={styles.listContent}
           columnWrapperStyle={columns > 1 ? [styles.row, { gap }] : undefined}
-          renderItem={({ item }) => {
-            const distanceKm = distanceToEventKm(location, item);
-            const distanceLabel =
-              distanceKm != null ? formatDistanceMiles(distanceKm) : undefined;
+          ListHeaderComponent={
+            <View>
+              {hostedEvents.length ? (
+                <View style={styles.section}>
+                  <Text style={styles.sectionTitle}>Your upcoming games</Text>
+                  <View style={[styles.grid, { gap }]}>
+                    {hostedEvents.map((item) => (
+                      <View key={item.id} style={{ width: cardWidth }}>
+                        <SessionCard
+                          event={item}
+                          goingCount={goingByEventId[item.id] ?? 0}
+                          onPress={() => router.push(sessionRoute(item.id))}
+                        />
+                      </View>
+                    ))}
+                  </View>
+                </View>
+              ) : null}
 
-            return (
-              <View style={[styles.cell, { maxWidth: cardWidth, marginBottom: gap }]}>
-                <SessionCard
-                  event={item}
-                  distanceLabel={distanceLabel}
-                  onPress={() => router.push(sessionRoute(item.id))}
-                />
-              </View>
-            );
-          }}
+              <Text style={[styles.sectionTitle, hostedEvents.length ? styles.findGamesTitle : null]}>
+                Find games
+              </Text>
+              {!joinable.length ? (
+                <View style={styles.emptyInList}>
+                  <EmptyState
+                    title="No games to join yet"
+                    body="Open the map, tap a court pin, and schedule a session there."
+                    action={
+                      isAppAdmin ? (
+                        <Pressable onPress={() => router.push(mapTabRoute)} style={styles.secondaryLink}>
+                          <Text style={styles.secondaryLinkText}>Manage courts</Text>
+                        </Pressable>
+                      ) : undefined
+                    }
+                  />
+                </View>
+              ) : null}
+            </View>
+          }
+          renderItem={({ item }) => renderSessionCard(item)}
         />
       )}
       <View style={styles.footer}>
@@ -158,6 +197,25 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.xl,
     paddingTop: spacing.sm,
     paddingBottom: spacing.lg,
+  },
+  section: {
+    width: '100%',
+    paddingBottom: spacing.md,
+  },
+  sectionTitle: {
+    ...typography.eyebrow,
+    color: brand.accent,
+    marginBottom: spacing.sm,
+  },
+  findGamesTitle: {
+    marginTop: spacing.sm,
+  },
+  grid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+  },
+  emptyInList: {
+    marginBottom: spacing.md,
   },
   row: {
     flex: 1,
