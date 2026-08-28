@@ -17,6 +17,7 @@ type GoogleMapsWindow = Window & {
       ) => {
         setCenter: (center: { lat: number; lng: number }) => void;
         setZoom: (zoom: number) => void;
+        addListener: (event: string, handler: () => void) => void;
       };
       Marker: new (opts: {
         position: { lat: number; lng: number };

@@ -20,6 +20,7 @@ export function WebGoogleMap({
   interactive = true,
   markers,
   onMarkerPress,
+  onMapPress,
 }: {
   center: { lat: number; lng: number };
   zoom?: number;
@@ -28,10 +29,14 @@ export function WebGoogleMap({
   interactive?: boolean;
   markers: WebGoogleMapMarker[];
   onMarkerPress?: (id: string) => void;
+  /** Fired when the map itself is clicked, ignoring marker clicks. */
+  onMapPress?: () => void;
 }) {
   const hostRef = useRef<HTMLDivElement | null>(null);
   const onMarkerPressRef = useRef(onMarkerPress);
   onMarkerPressRef.current = onMarkerPress;
+  const onMapPressRef = useRef(onMapPress);
+  onMapPressRef.current = onMapPress;
   const [mapError, setMapError] = useState<string | null>(null);
   const markerKey = markers.map((marker) => `${marker.id}:${marker.lat}:${marker.lng}`).join('|');
 
@@ -63,6 +68,8 @@ export function WebGoogleMap({
           });
           pin.addListener('click', () => onMarkerPressRef.current?.(marker.id));
         }
+
+        map.addListener('click', () => onMapPressRef.current?.());
 
         window.setTimeout(() => {
           if (cancelled) return;

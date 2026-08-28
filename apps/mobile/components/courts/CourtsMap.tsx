@@ -14,6 +14,7 @@ export function CourtsMap({
   userLat,
   userLng,
   onSelectCourt,
+  onDeselectCourt,
 }: CourtsMapProps) {
   const userCoords =
     userLat != null && userLng != null ? { lat: userLat, lng: userLng } : null;
@@ -55,16 +56,18 @@ export function CourtsMap({
         longitudeDelta,
       }}
       showsUserLocation={hasUser}
+      onPress={() => onDeselectCourt?.()}
       toolbarEnabled={false}>
       {courts.map((court) => (
         <Marker
           key={court.id}
           coordinate={{ latitude: court.lat, longitude: court.lng }}
-          title={court.name}
-          description={court.address}
           pinColor={brand.accent}
-          onCalloutPress={() => onSelectCourt(court.id)}
-          onPress={() => onSelectCourt(court.id)}
+          // Court details live in the bottom card, so suppress the native callout.
+          onPress={(event) => {
+            event.stopPropagation();
+            onSelectCourt(court.id);
+          }}
         />
       ))}
     </MapView>

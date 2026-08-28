@@ -12,6 +12,7 @@ export function CourtsMap({
   userLat,
   userLng,
   onSelectCourt,
+  onDeselectCourt,
 }: CourtsMapProps) {
   const location =
     userLat != null && userLng != null ? { lat: userLat, lng: userLng } : null;
@@ -38,6 +39,7 @@ export function CourtsMap({
           title: court.name,
         }))}
         onMarkerPress={onSelectCourt}
+        onMapPress={onDeselectCourt}
       />
     </View>
   );

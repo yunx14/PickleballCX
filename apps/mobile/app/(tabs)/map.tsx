@@ -1,8 +1,9 @@
 import { router } from 'expo-router';
-import { useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { CourtsMap } from '@/components/courts/CourtsMap';
+import { SelectedCourtCard } from '@/components/courts/SelectedCourtCard';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { PrimaryButton } from '@/components/ui/Screen';
 import { brand } from '@/constants/brand';
@@ -17,6 +18,7 @@ import { useAuth } from '@/providers/AuthProvider';
 export default function CourtsMapScreen() {
   const { profile } = useAuth();
   const isAppAdmin = profile?.is_app_admin ?? false;
+  const [selectedCourtId, setSelectedCourtId] = useState<string | null>(null);
 
   const { data: courts, isLoading: courtsLoading, error, refetch } = useCourts();
   const {
@@ -39,6 +41,16 @@ export default function CourtsMapScreen() {
       return da - db;
     });
   }, [courts, location]);
+
+  const selectedCourt = useMemo(
+    () => courtsToShow.find((court) => court.id === selectedCourtId) ?? null,
+    [courtsToShow, selectedCourtId],
+  );
+
+  // Drop the selection if that court disappears from the map on a refetch.
+  useEffect(() => {
+    if (selectedCourtId && !selectedCourt) setSelectedCourtId(null);
+  }, [selectedCourt, selectedCourtId]);
 
   if (courtsLoading) {
     return (
@@ -86,12 +98,21 @@ export default function CourtsMapScreen() {
           />
         </View>
       ) : (
-        <CourtsMap
-          courts={courtsToShow}
-          userLat={location?.lat}
-          userLng={location?.lng}
-          onSelectCourt={(courtId) => router.push(courtRoute(courtId))}
-        />
+        <View style={styles.mapArea}>
+          <CourtsMap
+            courts={courtsToShow}
+            userLat={location?.lat}
+            userLng={location?.lng}
+            onSelectCourt={setSelectedCourtId}
+            onDeselectCourt={() => setSelectedCourtId(null)}
+          />
+          {selectedCourt ? (
+            <SelectedCourtCard
+              court={selectedCourt}
+              onPress={() => router.push(courtRoute(selectedCourt.id))}
+            />
+          ) : null}
+        </View>
       )}
     </View>
   );
@@ -107,6 +128,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: brand.background,
+  },
+  mapArea: {
+    flex: 1,
   },
   header: {
     paddingHorizontal: spacing.xl,
