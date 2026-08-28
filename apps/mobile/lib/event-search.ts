@@ -15,6 +15,32 @@ export type SessionTypeFilter = SessionType | typeof SESSION_TYPE_FILTER_ANY;
 export const RADIUS_FILTER_ANY = 'any' as const;
 export type RadiusFilter = DiscoveryRadiusMi | typeof RADIUS_FILTER_ANY;
 
+/** Everything the search sheet edits, and what the feed applies. */
+export interface EventSearchFormState {
+  skill: SkillFilter;
+  sessionType: SessionTypeFilter;
+  radius: RadiusFilter;
+  /** Blank means search around the viewer instead of a named place. */
+  city: string;
+}
+
+export const DEFAULT_EVENT_SEARCH_FORM: EventSearchFormState = {
+  skill: SKILL_FILTER_ANY,
+  sessionType: SESSION_TYPE_FILTER_ANY,
+  radius: RADIUS_FILTER_ANY,
+  city: '',
+};
+
+/** Drives the badge on the search button, so hidden filters stay visible. */
+export function countActiveEventFilters(form: EventSearchFormState): number {
+  let count = 0;
+  if (form.city.trim()) count += 1;
+  if (form.skill !== SKILL_FILTER_ANY) count += 1;
+  if (form.sessionType !== SESSION_TYPE_FILTER_ANY) count += 1;
+  if (form.radius !== RADIUS_FILTER_ANY) count += 1;
+  return count;
+}
+
 export interface EventSearchFilter {
   search?: string;
   skill?: SkillFilter;
@@ -84,11 +110,17 @@ export function toEventSearchRow(row: SearchEventsRpcRow): EventSearchRow {
   };
 }
 
-export function hasActiveEventFilters(filter: EventSearchFilter): boolean {
-  return Boolean(
-    filter.search?.trim() ||
-      (filter.skill && filter.skill !== SKILL_FILTER_ANY) ||
-      (filter.sessionType && filter.sessionType !== SESSION_TYPE_FILTER_ANY) ||
-      (filter.radius && filter.radius !== RADIUS_FILTER_ANY),
-  );
+/** Maps the form the sheet edits onto the arguments the RPC takes. */
+export function toEventSearchFilter(
+  form: EventSearchFormState,
+  location: Coordinates | null,
+  excludeUserId?: string,
+): EventSearchFilter {
+  return {
+    skill: form.skill,
+    sessionType: form.sessionType,
+    radius: form.radius,
+    location,
+    excludeUserId,
+  };
 }

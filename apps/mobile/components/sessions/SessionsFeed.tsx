@@ -1,4 +1,5 @@
 import { router } from 'expo-router';
+import { SymbolView } from 'expo-symbols';
 import { useMemo, useState, type ReactNode } from 'react';
 import {
   ActivityIndicator,
@@ -10,26 +11,22 @@ import {
   View,
 } from 'react-native';
 
-import { GameSearchBar } from '@/components/sessions/GameSearchBar';
+import { GameSearchSheet } from '@/components/sessions/GameSearchSheet';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { SessionCard } from '@/components/ui/SessionCard';
 import { brand } from '@/constants/brand';
-import { border, spacing, typography } from '@/constants/theme';
+import { border, radius, spacing, typography } from '@/constants/theme';
 import { useMyHostedUpcomingEvents, type EventRow } from '@/hooks/useEvents';
 import { useSearchEvents } from '@/hooks/useSearchEvents';
 import { useSearchLocation } from '@/hooks/useSearchLocation';
 import { useSessionCardColumns } from '@/hooks/useSessionCardColumns';
-import { useDebouncedValue } from '@/hooks/useDebouncedValue';
 import { useUserLocation } from '@/hooks/useUserLocation';
 import { distanceToEventKm } from '@/lib/event-filters';
 import {
-  RADIUS_FILTER_ANY,
-  SESSION_TYPE_FILTER_ANY,
-  SKILL_FILTER_ANY,
-  hasActiveEventFilters,
-  type RadiusFilter,
-  type SessionTypeFilter,
-  type SkillFilter,
+  DEFAULT_EVENT_SEARCH_FORM,
+  countActiveEventFilters,
+  toEventSearchFilter,
+  type EventSearchFormState,
 } from '@/lib/event-search';
 import { formatDistanceMiles } from '@/lib/geo';
 import { mapTabRoute, sessionRoute } from '@/lib/routes';
@@ -41,30 +38,22 @@ export function SessionsFeed({ header }: { header?: ReactNode } = {}) {
   const isAppAdmin = profile?.is_app_admin ?? false;
   const { columns, cardWidth, gap } = useSessionCardColumns();
 
-  const [search, setSearch] = useState('');
-  const [skill, setSkill] = useState<SkillFilter>(SKILL_FILTER_ANY);
-  const [sessionType, setSessionType] = useState<SessionTypeFilter>(SESSION_TYPE_FILTER_ANY);
-  const [radius, setRadius] = useState<RadiusFilter>(RADIUS_FILTER_ANY);
-  const debouncedSearch = useDebouncedValue(search);
-  const searchLocation = useSearchLocation();
+  const [applied, setApplied] = useState<EventSearchFormState>(DEFAULT_EVENT_SEARCH_FORM);
+  const [sheetOpen, setSheetOpen] = useState(false);
+
+  const searchLocation = useSearchLocation({ city: applied.city });
 
   const { data: locationResult, refetch: refetchLocation } = useUserLocation();
   const locationStatus = locationResult?.status ?? 'unavailable';
   const location = searchLocation.coords;
 
   const searchFilter = useMemo(
-    () => ({
-      search: debouncedSearch,
-      skill,
-      sessionType,
-      radius,
-      location,
-      excludeUserId: userId,
-    }),
-    [debouncedSearch, skill, sessionType, radius, location, userId],
+    () => toEventSearchFilter(applied, location, userId),
+    [applied, location, userId],
   );
 
-  const filtersActive = hasActiveEventFilters(searchFilter) || searchLocation.mode === 'city';
+  const activeFilterCount = countActiveEventFilters(applied);
+  const filtersActive = activeFilterCount > 0;
 
   const {
     data: events,
@@ -80,13 +69,7 @@ export function SessionsFeed({ header }: { header?: ReactNode } = {}) {
 
   const joinable = events ?? [];
 
-  const clearFilters = () => {
-    setSearch('');
-    setSkill(SKILL_FILTER_ANY);
-    setSessionType(SESSION_TYPE_FILTER_ANY);
-    setRadius(RADIUS_FILTER_ANY);
-    searchLocation.useNearMe();
-  };
+  const clearFilters = () => setApplied(DEFAULT_EVENT_SEARCH_FORM);
 
   const handleRefresh = () => {
     void refetchLocation();
@@ -94,20 +77,29 @@ export function SessionsFeed({ header }: { header?: ReactNode } = {}) {
     void hostedQuery.refetch();
   };
 
-  const searchBar = (
-    <GameSearchBar
-      search={search}
-      onSearchChange={setSearch}
-      skill={skill}
-      onSkillChange={setSkill}
-      sessionType={sessionType}
-      onSessionTypeChange={setSessionType}
-      radius={radius}
-      onRadiusChange={setRadius}
-      location={searchLocation}
-      onClear={clearFilters}
-      showClear={filtersActive}
-    />
+  const findGamesHeader = (
+    <View style={styles.sectionHeaderRow}>
+      <Text style={styles.sectionHeaderTitle}>Find games</Text>
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel={
+          filtersActive ? `Search games, ${activeFilterCount} filters active` : 'Search games'
+        }
+        onPress={() => setSheetOpen(true)}
+        hitSlop={8}
+        style={({ pressed }) => [styles.searchButton, pressed && styles.pressed]}>
+        <SymbolView
+          name={{ ios: 'magnifyingglass', android: 'search', web: 'search' }}
+          tintColor={brand.text}
+          size={22}
+        />
+        {filtersActive ? (
+          <View style={styles.badge}>
+            <Text style={styles.badgeText}>{activeFilterCount}</Text>
+          </View>
+        ) : null}
+      </Pressable>
+    </View>
   );
 
   const renderSessionCard = (
@@ -130,14 +122,26 @@ export function SessionsFeed({ header }: { header?: ReactNode } = {}) {
     );
   };
 
+  const searchSheet = sheetOpen ? (
+    <GameSearchSheet
+      initial={applied}
+      onApply={(next) => {
+        setApplied(next);
+        setSheetOpen(false);
+      }}
+      onClose={() => setSheetOpen(false)}
+    />
+  ) : null;
+
   if (eventsLoading) {
     return (
       <View style={styles.listContainer}>
         {header ? <View style={styles.headerSlot}>{header}</View> : null}
-        <View style={styles.padded}>{searchBar}</View>
+        <View style={styles.padded}>{findGamesHeader}</View>
         <View style={styles.centered}>
           <ActivityIndicator size="large" color={brand.accent} />
         </View>
+        {searchSheet}
       </View>
     );
   }
@@ -153,7 +157,7 @@ export function SessionsFeed({ header }: { header?: ReactNode } = {}) {
       {error ? (
         <View style={styles.padded}>
           {header}
-          {searchBar}
+          {findGamesHeader}
           <EmptyState title="Could not load sessions" body={error.message} />
         </View>
       ) : (
@@ -174,8 +178,7 @@ export function SessionsFeed({ header }: { header?: ReactNode } = {}) {
           ListHeaderComponent={
             <View>
               {header}
-              <Text style={styles.sectionTitle}>Find games</Text>
-              {searchBar}
+              {findGamesHeader}
               {!joinable.length ? (
                 <View style={styles.emptyInList}>
                   <EmptyState
@@ -223,6 +226,8 @@ export function SessionsFeed({ header }: { header?: ReactNode } = {}) {
           renderItem={({ item }) => renderSessionCard(item)}
         />
       )}
+
+      {searchSheet}
     </View>
   );
 }
@@ -267,6 +272,42 @@ const styles = StyleSheet.create({
   sectionTitle: {
     ...typography.titleSm,
     marginBottom: spacing.md,
+  },
+  sectionHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: spacing.md,
+  },
+  sectionHeaderTitle: {
+    ...typography.titleSm,
+  },
+  searchButton: {
+    padding: 6,
+    borderWidth: border.width,
+    borderColor: brand.borderStrong,
+    borderRadius: radius.md,
+    backgroundColor: brand.surface,
+  },
+  pressed: {
+    opacity: 0.7,
+  },
+  badge: {
+    position: 'absolute',
+    top: -6,
+    right: -6,
+    minWidth: 16,
+    height: 16,
+    borderRadius: 8,
+    backgroundColor: brand.accent,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 3,
+  },
+  badgeText: {
+    color: brand.white,
+    fontSize: 9,
+    fontWeight: '800',
   },
   sectionDivider: {
     height: border.width,

@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
-import { useMemo, useState } from 'react';
+import { useMemo } from 'react';
 
 import { geocodeCity } from '@/lib/geocoding';
 import type { Coordinates } from '@/lib/geo';
@@ -9,31 +9,26 @@ import { useAuth } from '@/providers/AuthProvider';
 import { useDebouncedValue } from './useDebouncedValue';
 import { useUserLocation } from './useUserLocation';
 
-export type SearchLocationMode = 'near_me' | 'city';
-
-export interface SearchLocationState {
-  mode: SearchLocationMode;
+export interface ResolvedSearchLocation {
   /** Coordinates to search around, or null when none could be resolved. */
   coords: Coordinates | null;
   /** Human readable description of where we are searching. */
   label: string;
-  city: string;
-  setCity: (city: string) => void;
-  useNearMe: () => void;
-  useCityMode: () => void;
+  /** True when a typed place is being resolved to coordinates. */
   isResolving: boolean;
   error?: string;
 }
 
 /**
- * Resolves where to search for games: the device's GPS, or a typed city geocoded
- * to coordinates. Falls back to the profile's saved city when GPS is unavailable,
- * so denying location permission still yields distances.
+ * Resolves where to search for games. A non-empty city is geocoded; a blank one
+ * falls back to the device's GPS, then to the profile's saved city, so denying
+ * location permission still yields distances.
+ *
+ * The city is owned by the caller so a draft (the search sheet) and the applied
+ * set (the feed) can be resolved side by side off one geocode cache.
  */
-export function useSearchLocation(): SearchLocationState {
+export function useSearchLocation({ city }: { city: string }): ResolvedSearchLocation {
   const { profile } = useAuth();
-  const [mode, setMode] = useState<SearchLocationMode>('near_me');
-  const [city, setCity] = useState('');
 
   const { data: locationResult } = useUserLocation();
   const gpsCoords = locationResult?.coords ?? null;
@@ -44,9 +39,10 @@ export function useSearchLocation(): SearchLocationState {
     return hasValidCoordinates(coords) ? coords : null;
   }, [profile?.city_lat, profile?.city_lng]);
 
+  const trimmedCity = city.trim();
   // Debounced so typing a city does not fire a billable geocode per keystroke.
-  const debouncedCity = useDebouncedValue(city.trim(), 500);
-  const cityQueryEnabled = mode === 'city' && debouncedCity.length >= 3;
+  const debouncedCity = useDebouncedValue(trimmedCity, 500);
+  const cityQueryEnabled = debouncedCity.length >= 3;
 
   const {
     data: cityCoords,
@@ -61,41 +57,25 @@ export function useSearchLocation(): SearchLocationState {
     retry: false,
   });
 
-  if (mode === 'city') {
+  if (trimmedCity) {
     return {
-      mode,
       coords: cityCoords ?? null,
-      label: debouncedCity || 'Choose a city',
-      city,
-      setCity,
-      useNearMe: () => {
-        setMode('near_me');
-        setCity('');
-      },
-      useCityMode: () => setMode('city'),
-      isResolving: isGeocoding,
+      label: debouncedCity || trimmedCity,
+      isResolving: isGeocoding || debouncedCity !== trimmedCity,
       error: geocodeError
         ? 'We could not find that city. Try "Austin, TX" or "Mobile, AL".'
         : undefined,
     };
   }
 
-  const coords = gpsCoords ?? profileCoords;
-  const label = gpsCoords
-    ? 'Near me'
-    : profileCoords
-      ? `${profile?.city ?? 'Your city'} (profile)`
-      : 'Location unavailable';
-
   return {
-    mode,
-    coords,
-    label,
-    city,
-    setCity,
-    useNearMe: () => setMode('near_me'),
-    useCityMode: () => setMode('city'),
+    coords: gpsCoords ?? profileCoords,
+    // Phrased to read inside "search around ...".
+    label: gpsCoords
+      ? 'your current location'
+      : profileCoords
+        ? (profile?.city?.trim() ?? 'your saved city')
+        : 'no location yet',
     isResolving: false,
-    error: undefined,
   };
 }
