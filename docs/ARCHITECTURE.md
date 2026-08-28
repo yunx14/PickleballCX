@@ -147,8 +147,22 @@ flowchart LR
 | New RSVP | Host |
 | Session updated | Attendees |
 | Session cancelled | Attendees |
+| Starting soon (75–90 min out) | Going + maybe |
+| Host message | Everyone on the roster |
 
 New sessions do not broadcast push to all users (MVP anti-spam). See [`DEPLOY.md`](../DEPLOY.md) for setup.
+
+### Scheduled jobs
+
+`pg_cron` runs `send-session-reminders` every 15 minutes, which calls `private.send_session_reminders()`. That function reminds each session starting within 90 minutes exactly once, stamping `events.reminder_sent_at` so a later run skips it. Moving a session's start time clears the stamp so the reminder fires again for the new time. Inspect runs with:
+
+```sql
+select * from cron.job_run_details
+where jobid = (select jobid from cron.job where jobname = 'send-session-reminders')
+order by start_time desc limit 10;
+```
+
+Hosts reach their roster through `public.broadcast_to_attendees(event_id, message)`, which is host-only, limited to 500 characters, throttled to one message per minute per session, and closed once the session is cancelled or over.
 
 ---
 

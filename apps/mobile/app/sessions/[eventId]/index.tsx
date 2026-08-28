@@ -3,11 +3,21 @@ import {
   RSVP_STATUS_LABELS,
   SESSION_TYPE_LABELS,
   SKILL_LEVEL_LABELS,
+  formatDurationLabel,
   type SkillLevel,
 } from '@pickleballcx/shared';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
-import { ActivityIndicator, Linking, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import {
+  ActivityIndicator,
+  Linking,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  View,
+} from 'react-native';
 
 import { Avatar } from '@/components/ui/Avatar';
 import { SkillBadge } from '@/components/ui/SkillBadge';
@@ -17,13 +27,16 @@ import { brand } from '@/constants/brand';
 import {
   countGoing,
   skillBreakdown,
+  useBroadcastToAttendees,
+  useCancelEvent,
   useDeleteEvent,
   useEvent,
   useEventRsvps,
+  useReinstateEvent,
   useRsvp,
   type EventRsvpRow,
 } from '@/hooks/useEvents';
-import { formatSessionDateTime } from '@/lib/format';
+import { formatSessionTimeRange, isSessionInProgress } from '@/lib/format';
 import { getDirectionsUrl } from '@/lib/maps-links';
 import { editSessionRoute, newSessionRoute, sessionsTabRoute } from '@/lib/routes';
 import { useAuth } from '@/providers/AuthProvider';
@@ -36,8 +49,17 @@ export default function SessionDetailScreen() {
   const { data: rsvps, isLoading: rsvpsLoading } = useEventRsvps(id);
   const rsvpMutation = useRsvp(id);
   const deleteEvent = useDeleteEvent(id);
+  const cancelEvent = useCancelEvent(id);
+  const reinstateEvent = useReinstateEvent(id);
+  const broadcast = useBroadcastToAttendees(id);
+  const [broadcastMessage, setBroadcastMessage] = useState('');
+  const [broadcastError, setBroadcastError] = useState<string>();
+  const [broadcastSent, setBroadcastSent] = useState<number>();
   const [confirmingDelete, setConfirmingDelete] = useState(false);
   const [deleteError, setDeleteError] = useState<string>();
+  const [confirmingCancel, setConfirmingCancel] = useState(false);
+  const [cancelReason, setCancelReason] = useState('');
+  const [actionError, setActionError] = useState<string>();
 
   const isCreator = event?.created_by === session?.user.id;
   const userRsvp = rsvps?.find((row) => row.user_id === session?.user.id);
@@ -51,6 +73,8 @@ export default function SessionDetailScreen() {
   const waitlistPosition = onWaitlist
     ? waitlist.findIndex((row) => row.user_id === session?.user.id) + 1
     : 0;
+  const isCancelled = Boolean(event?.cancelled_at);
+  const hasEnded = event ? new Date(event.ends_at).getTime() <= Date.now() : false;
 
   if (isLoading || rsvpsLoading) {
     return (
@@ -105,8 +129,25 @@ export default function SessionDetailScreen() {
 
   return (
     <ScrollView contentContainerStyle={styles.scrollContent}>
+      {isCancelled ? (
+        <View style={styles.cancelledBanner}>
+          <Text style={styles.cancelledTitle}>This session was cancelled</Text>
+          {event.cancellation_reason ? (
+            <Text style={styles.cancelledBody}>{event.cancellation_reason}</Text>
+          ) : (
+            <Text style={styles.cancelledBody}>The host called it off.</Text>
+          )}
+        </View>
+      ) : null}
+
       <View style={styles.headerCard}>
-        <Text style={styles.datetime}>{formatSessionDateTime(event.starts_at)}</Text>
+        <Text style={styles.datetime}>
+          {formatSessionTimeRange(event.starts_at, event.ends_at)}
+        </Text>
+        <Text style={styles.duration}>
+          {formatDurationLabel(event.duration_minutes)}
+          {isSessionInProgress(event.starts_at, event.ends_at) ? ' · in progress now' : ''}
+        </Text>
         <Text style={styles.title}>{event.courts?.name ?? 'Session'}</Text>
         <Text style={styles.subtitle}>{SESSION_TYPE_LABELS[event.session_type]}</Text>
         {event.courts?.address ? <Text style={styles.address}>{event.courts.address}</Text> : null}
@@ -123,7 +164,153 @@ export default function SessionDetailScreen() {
 
       {isCreator ? (
         <View style={styles.creatorActions}>
-          <PrimaryButton label="Edit session" onPress={() => router.push(editSessionRoute(id))} />
+          {isCancelled ? (
+            <>
+              <PrimaryButton
+                label={reinstateEvent.isPending ? 'Putting it back on…' : 'Put session back on'}
+                onPress={() => {
+                  setActionError(undefined);
+                  reinstateEvent.mutate(undefined, {
+                    onError: (error) =>
+                      setActionError(
+                        error instanceof Error ? error.message : 'Could not reinstate session',
+                      ),
+                  });
+                }}
+                disabled={reinstateEvent.isPending}
+              />
+              {actionError ? <Text style={styles.deleteError}>{actionError}</Text> : null}
+            </>
+          ) : (
+            <PrimaryButton label="Edit session" onPress={() => router.push(editSessionRoute(id))} />
+          )}
+
+          {!isCancelled && !hasEnded ? (
+            <View style={styles.broadcastCard}>
+              <Text style={styles.confirmTitle}>Message the players</Text>
+              <Text style={styles.confirmBody}>
+                Everyone who RSVP’d gets a notification. Good for “running 10 minutes late” or
+                “we’re on court 3”.
+              </Text>
+              <TextInput
+                style={styles.reasonInput}
+                value={broadcastMessage}
+                onChangeText={(text) => {
+                  setBroadcastMessage(text);
+                  setBroadcastSent(undefined);
+                  setBroadcastError(undefined);
+                }}
+                placeholder="e.g. Running 10 minutes late, start without me"
+                placeholderTextColor={brand.muted}
+                maxLength={500}
+                multiline
+                textAlignVertical="top"
+                accessibilityLabel="Message to players"
+              />
+              {broadcastError ? <Text style={styles.deleteError}>{broadcastError}</Text> : null}
+              {broadcastSent != null ? (
+                <Text style={styles.broadcastSuccess}>
+                  {broadcastSent === 0
+                    ? 'Nobody else has RSVP’d yet, so there was nobody to notify.'
+                    : `Sent to ${broadcastSent} ${broadcastSent === 1 ? 'player' : 'players'}.`}
+                </Text>
+              ) : null}
+              <PrimaryButton
+                label={broadcast.isPending ? 'Sending…' : 'Send message'}
+                disabled={broadcast.isPending || !broadcastMessage.trim()}
+                onPress={() => {
+                  setBroadcastError(undefined);
+                  setBroadcastSent(undefined);
+                  broadcast.mutate(broadcastMessage.trim(), {
+                    onSuccess: (count) => {
+                      setBroadcastSent(count);
+                      setBroadcastMessage('');
+                    },
+                    onError: (error) =>
+                      setBroadcastError(
+                        error instanceof Error ? error.message : 'Could not send message',
+                      ),
+                  });
+                }}
+              />
+            </View>
+          ) : null}
+
+          {!isCancelled ? (
+            confirmingCancel ? (
+              <View style={styles.confirmCard}>
+                <Text style={styles.confirmTitle}>Cancel this session?</Text>
+                <Text style={styles.confirmBody}>
+                  Everyone who RSVP’d will be notified. The session stays visible to them with your
+                  reason, and you can put it back on later.
+                </Text>
+                <TextInput
+                  style={styles.reasonInput}
+                  value={cancelReason}
+                  onChangeText={setCancelReason}
+                  placeholder="Reason (optional), e.g. courts flooded"
+                  placeholderTextColor={brand.muted}
+                  maxLength={300}
+                  multiline
+                  textAlignVertical="top"
+                  accessibilityLabel="Cancellation reason"
+                />
+                {actionError ? <Text style={styles.deleteError}>{actionError}</Text> : null}
+                <View style={styles.confirmActions}>
+                  <Pressable
+                    disabled={cancelEvent.isPending}
+                    onPress={() => {
+                      setConfirmingCancel(false);
+                      setActionError(undefined);
+                    }}
+                    style={({ pressed }) => [
+                      styles.confirmCancelButton,
+                      pressed && !cancelEvent.isPending && styles.deleteButtonPressed,
+                    ]}>
+                    <Text pointerEvents="none" style={styles.confirmCancelText}>
+                      Keep it
+                    </Text>
+                  </Pressable>
+                  <Pressable
+                    disabled={cancelEvent.isPending}
+                    onPress={() => {
+                      setActionError(undefined);
+                      cancelEvent.mutate(cancelReason, {
+                        onSuccess: () => {
+                          setConfirmingCancel(false);
+                          setCancelReason('');
+                        },
+                        onError: (error) =>
+                          setActionError(
+                            error instanceof Error ? error.message : 'Could not cancel session',
+                          ),
+                      });
+                    }}
+                    style={({ pressed }) => [
+                      styles.confirmDeleteButton,
+                      cancelEvent.isPending && styles.deleteButtonDisabled,
+                      pressed && !cancelEvent.isPending && styles.deleteButtonPressed,
+                    ]}>
+                    <Text pointerEvents="none" style={styles.confirmDeleteText}>
+                      {cancelEvent.isPending ? 'Cancelling…' : 'Cancel session'}
+                    </Text>
+                  </Pressable>
+                </View>
+              </View>
+            ) : (
+              <Pressable
+                accessibilityRole="button"
+                onPress={() => {
+                  setActionError(undefined);
+                  setConfirmingCancel(true);
+                }}
+                style={({ pressed }) => [styles.deleteButton, pressed && styles.deleteButtonPressed]}>
+                <Text pointerEvents="none" style={styles.deleteButtonText}>
+                  Cancel session
+                </Text>
+              </Pressable>
+            )
+          ) : null}
           {confirmingDelete ? (
             <View style={styles.confirmCard}>
               <Text style={styles.confirmTitle}>Delete session?</Text>
@@ -212,6 +399,11 @@ export default function SessionDetailScreen() {
       ) : null}
 
       <Text style={styles.sectionTitle}>Your RSVP</Text>
+      {isCancelled ? (
+        <Text style={styles.rsvpClosed}>
+          RSVPs are closed because this session was cancelled.
+        </Text>
+      ) : (
       <View style={styles.rsvpRow}>
         {RSVP_STATUSES.filter((status) => status !== 'waitlist').map((status) => {
           // A going request on a full session is stored as waitlist, so that button
@@ -236,6 +428,7 @@ export default function SessionDetailScreen() {
           );
         })}
       </View>
+      )}
 
       <Text style={styles.sectionTitle}>Going ({goingCount})</Text>
       {goingAttendees.length === 0 ? (
@@ -396,6 +589,11 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '600',
     color: brand.accent,
+    marginBottom: 2,
+  },
+  duration: {
+    fontSize: 13,
+    color: brand.muted,
     marginBottom: 8,
   },
   title: {
@@ -452,6 +650,53 @@ const styles = StyleSheet.create({
   skillSummary: {
     fontSize: 14,
     color: brand.muted,
+  },
+  cancelledBanner: {
+    backgroundColor: brand.surface,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: brand.danger,
+    padding: 16,
+    marginBottom: 16,
+    gap: 4,
+  },
+  cancelledTitle: {
+    fontSize: 16,
+    fontWeight: '800',
+    color: brand.danger,
+  },
+  cancelledBody: {
+    fontSize: 14,
+    lineHeight: 20,
+    color: brand.text,
+  },
+  reasonInput: {
+    backgroundColor: brand.background,
+    borderWidth: 1,
+    borderColor: brand.borderStrong,
+    borderRadius: 12,
+    padding: 12,
+    minHeight: 70,
+    fontSize: 15,
+    color: brand.text,
+  },
+  broadcastCard: {
+    backgroundColor: brand.surface,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: brand.border,
+    padding: 16,
+    gap: 10,
+  },
+  broadcastSuccess: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: brand.accent,
+  },
+  rsvpClosed: {
+    fontSize: 15,
+    color: brand.muted,
+    marginBottom: 24,
   },
   fullNotice: {
     fontSize: 14,

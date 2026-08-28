@@ -8,6 +8,8 @@ interface WebhookPayload {
   type: string;
   record: Record<string, unknown>;
   recipient_ids?: unknown;
+  message?: unknown;
+  minutes_until_start?: unknown;
 }
 
 interface PushMessage {
@@ -90,8 +92,15 @@ async function buildNotifications(
     if (payload.type === 'UPDATE') {
       return buildEventUpdatedNotifications(supabase, payload, record);
     }
-    if (payload.type === 'DELETE') {
+    // CANCEL comes from cancel_event, which soft cancels rather than deleting.
+    if (payload.type === 'DELETE' || payload.type === 'CANCEL') {
       return buildEventCancelledNotifications(supabase, payload, record);
+    }
+    if (payload.type === 'REMINDER') {
+      return buildReminderNotifications(supabase, payload, record);
+    }
+    if (payload.type === 'BROADCAST') {
+      return buildBroadcastNotifications(supabase, payload, record);
     }
     return [];
   }
@@ -259,12 +268,58 @@ async function buildEventCancelledNotifications(
     record.court_id ? String(record.court_id) : undefined,
   );
   const tokens = await fetchTokensForUsers(supabase, recipientIds);
+  const reason = String(record.cancellation_reason ?? '').trim();
 
   return tokens.map((token) => ({
     to: token,
     title: 'Session cancelled',
-    body: `${courtName} was cancelled`,
+    body: reason ? `${courtName} was cancelled · ${reason}` : `${courtName} was cancelled`,
     data: eventId ? { eventId, screen: 'session' } : { screen: 'session' },
+  }));
+}
+
+async function buildReminderNotifications(
+  supabase: ReturnType<typeof createClient>,
+  payload: WebhookPayload,
+  record: Record<string, unknown>,
+): Promise<PushMessage[]> {
+  const eventId = String(record.id ?? '');
+  const recipientIds = parseRecipientIds(payload);
+  if (!eventId || recipientIds.length === 0) return [];
+
+  const courtName = await courtNameForEvent(supabase, eventId, String(record.court_id ?? ''));
+  const tokens = await fetchTokensForUsers(supabase, recipientIds);
+  const minutes = Number(payload.minutes_until_start);
+  // Relative wording, because the sender has no idea what time zone the player is in.
+  const when = Number.isFinite(minutes) && minutes > 0 ? `in about ${Math.round(minutes)} minutes` : 'soon';
+
+  return tokens.map((token) => ({
+    to: token,
+    title: 'Starting soon',
+    body: `${courtName} starts ${when}`,
+    data: { eventId, screen: 'session' },
+  }));
+}
+
+async function buildBroadcastNotifications(
+  supabase: ReturnType<typeof createClient>,
+  payload: WebhookPayload,
+  record: Record<string, unknown>,
+): Promise<PushMessage[]> {
+  const eventId = String(record.id ?? '');
+  const recipientIds = parseRecipientIds(payload);
+  const message = String(payload.message ?? '').trim();
+  if (!eventId || !message || recipientIds.length === 0) return [];
+
+  const courtName = await courtNameForEvent(supabase, eventId, String(record.court_id ?? ''));
+  const tokens = await fetchTokensForUsers(supabase, recipientIds);
+  const preview = message.length > 120 ? `${message.slice(0, 117)}…` : message;
+
+  return tokens.map((token) => ({
+    to: token,
+    title: `Host update · ${courtName}`,
+    body: preview,
+    data: { eventId, screen: 'session' },
   }));
 }
 

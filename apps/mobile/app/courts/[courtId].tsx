@@ -35,7 +35,7 @@ import {
 import { brand } from '@/constants/brand';
 import { useCourt, useUpdateCourt } from '@/hooks/useCourts';
 import { useCourtEvents } from '@/hooks/useEvents';
-import { formatSessionDateTime } from '@/lib/format';
+import { formatSessionTimeRange } from '@/lib/format';
 import { hasValidCoordinates } from '@/lib/geo';
 import { newSessionRoute, sessionRoute } from '@/lib/routes';
 import { useAuth } from '@/providers/AuthProvider';
@@ -158,7 +158,9 @@ export default function CourtDetailScreen() {
                   key={event.id}
                   onPress={() => router.push(sessionRoute(event.id))}
                   style={({ pressed }) => [styles.sessionRow, pressed && styles.sessionRowPressed]}>
-                  <Text style={styles.sessionWhen}>{formatSessionDateTime(event.starts_at)}</Text>
+                  <Text style={styles.sessionWhen}>
+                    {formatSessionTimeRange(event.starts_at, event.ends_at)}
+                  </Text>
                   <Text style={styles.sessionType}>{SESSION_TYPE_LABELS[event.session_type]}</Text>
                 </Pressable>
               ))}

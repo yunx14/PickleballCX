@@ -7,7 +7,7 @@ import { brand } from '@/constants/brand';
 import { spacing, typography } from '@/constants/theme';
 import type { EventRow } from '@/hooks/useEvents';
 import { useIsCompactViewport } from '@/hooks/useIsCompactViewport';
-import { formatSessionDateTime } from '@/lib/format';
+import { formatSessionTimeRange, isSessionInProgress } from '@/lib/format';
 
 export function SessionCard({
   event,
@@ -28,6 +28,8 @@ export function SessionCard({
         ? `${goingCount}`
         : null;
   const isFull = event.max_players != null && goingCount != null && goingCount >= event.max_players;
+  const isCancelled = Boolean(event.cancelled_at);
+  const inProgress = !isCancelled && isSessionInProgress(event.starts_at, event.ends_at);
 
   return (
     <View style={styles.wrapper}>
@@ -35,7 +37,14 @@ export function SessionCard({
         {isCompact ? null : <CourtMapPreview lat={event.lat} lng={event.lng} />}
         <View style={styles.body}>
           <View style={styles.metaRow}>
-            <Text style={styles.datetime}>{formatSessionDateTime(event.starts_at)}</Text>
+            <Text style={styles.datetime}>
+              {formatSessionTimeRange(event.starts_at, event.ends_at)}
+            </Text>
+            {isCancelled ? (
+              <Text style={styles.cancelledPill}>Cancelled</Text>
+            ) : inProgress ? (
+              <Text style={styles.livePill}>Now playing</Text>
+            ) : null}
           </View>
           <Text style={styles.title} numberOfLines={1}>
             {event.courts?.name ?? 'Session'}
@@ -84,6 +93,26 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: brand.accent,
     flexShrink: 1,
+  },
+  cancelledPill: {
+    fontSize: 11,
+    fontWeight: '800',
+    color: brand.white,
+    backgroundColor: brand.danger,
+    borderRadius: 999,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: 2,
+    overflow: 'hidden',
+  },
+  livePill: {
+    fontSize: 11,
+    fontWeight: '800',
+    color: brand.accentText,
+    backgroundColor: brand.accent,
+    borderRadius: 999,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: 2,
+    overflow: 'hidden',
   },
   title: {
     fontSize: 18,

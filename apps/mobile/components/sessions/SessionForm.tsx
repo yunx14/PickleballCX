@@ -1,9 +1,11 @@
 import DateTimePicker from '@react-native-community/datetimepicker';
 import {
+  SESSION_DURATION_OPTIONS,
   SESSION_TYPES,
   SESSION_TYPE_LABELS,
   SKILL_LEVELS,
   SKILL_LEVEL_LABELS,
+  formatDurationLabel,
   type CreateEventInput,
   type SessionType,
   type SkillLevel,
@@ -36,6 +38,7 @@ import { formatSessionDateTime } from '@/lib/format';
 const FIELD_LABELS: FieldLabels = {
   courtId: 'Court',
   startsAt: 'Date & time',
+  durationMinutes: 'Length',
   sessionType: 'Session type',
   maxPlayers: 'Max players',
   skillMin: 'Minimum skill',
@@ -100,6 +103,38 @@ export function SessionForm({
         )}
       />
       <ErrorText message={errors.startsAt?.message} />
+
+      <FieldLabel invalid={Boolean(errors.durationMinutes)}>How long</FieldLabel>
+      <Controller
+        control={control}
+        name="durationMinutes"
+        render={({ field: { onChange, value }, fieldState: { error } }) => (
+          <>
+            <View style={styles.durationRow}>
+              {SESSION_DURATION_OPTIONS.map((minutes) => {
+                const selected = value === minutes;
+                return (
+                  <Pressable
+                    key={minutes}
+                    accessibilityRole="button"
+                    accessibilityState={{ selected }}
+                    onPress={() => onChange(minutes)}
+                    style={[
+                      styles.durationChip,
+                      Boolean(error) && !selected && invalidInputStyle,
+                      selected && styles.optionSelected,
+                    ]}>
+                    <Text style={[styles.optionText, selected && styles.optionTextSelected]}>
+                      {formatDurationLabel(minutes)}
+                    </Text>
+                  </Pressable>
+                );
+              })}
+            </View>
+            <ErrorText message={error?.message} />
+          </>
+        )}
+      />
 
       <FieldLabel invalid={Boolean(errors.sessionType)}>Session type</FieldLabel>
       <Controller
@@ -438,6 +473,20 @@ const styles = StyleSheet.create({
   optionTextSelected: {
     color: brand.accent,
     fontWeight: '800',
+  },
+  durationRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    marginBottom: 10,
+  },
+  durationChip: {
+    backgroundColor: brand.surface,
+    borderWidth: 1,
+    borderColor: brand.borderStrong,
+    borderRadius: 999,
+    paddingVertical: 10,
+    paddingHorizontal: 16,
   },
   optionSubtext: {
     fontSize: 13,

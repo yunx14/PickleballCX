@@ -106,6 +106,8 @@ export interface Database {
           id: string;
           court_id: string;
           starts_at: string;
+          duration_minutes: number;
+          ends_at: string;
           max_players: number | null;
           session_type: SessionType;
           skill_min: SkillLevel | null;
@@ -116,11 +118,18 @@ export interface Database {
           created_by: string;
           created_at: string;
           updated_at: string;
+          cancelled_at: string | null;
+          cancellation_reason: string | null;
+          reminder_sent_at: string | null;
+          last_broadcast_at: string | null;
         };
         Insert: {
           id?: string;
           court_id: string;
           starts_at: string;
+          duration_minutes?: number;
+          // Derived from starts_at and duration_minutes by a trigger.
+          ends_at?: never;
           max_players?: number | null;
           session_type?: SessionType;
           skill_min?: SkillLevel | null;
@@ -136,6 +145,8 @@ export interface Database {
           id?: string;
           court_id?: string;
           starts_at?: string;
+          duration_minutes?: number;
+          ends_at?: never;
           max_players?: number | null;
           session_type?: SessionType;
           skill_min?: SkillLevel | null;
@@ -146,6 +157,12 @@ export interface Database {
           created_by?: string;
           created_at?: string;
           updated_at?: string;
+          // Only cancel_event and reinstate_event may change these.
+          cancelled_at?: never;
+          cancellation_reason?: never;
+          // Bookkeeping for the reminder job and the broadcast throttle.
+          reminder_sent_at?: never;
+          last_broadcast_at?: never;
         };
         Relationships: [
           {
@@ -341,6 +358,18 @@ export interface Database {
           skill_level: SkillLevel | null;
         }[];
       };
+      cancel_event: {
+        Args: { p_event_id: string; p_reason?: string | null };
+        Returns: string;
+      };
+      reinstate_event: {
+        Args: { p_event_id: string };
+        Returns: void;
+      };
+      broadcast_to_attendees: {
+        Args: { p_event_id: string; p_message: string };
+        Returns: number;
+      };
       rsvp_to_event: {
         Args: { p_event_id: string; p_status: RsvpStatus };
         Returns: RsvpStatus;
@@ -361,6 +390,8 @@ export interface Database {
           id: string;
           court_id: string;
           starts_at: string;
+          duration_minutes: number;
+          ends_at: string;
           max_players: number | null;
           session_type: SessionType;
           skill_min: SkillLevel | null;

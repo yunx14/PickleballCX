@@ -1,5 +1,9 @@
 import { zodResolver } from '@hookform/resolvers/zod';
-import { createEventSchema, type CreateEventInput } from '@pickleballcx/shared';
+import {
+  DEFAULT_SESSION_DURATION_MINUTES,
+  createEventSchema,
+  type CreateEventInput,
+} from '@pickleballcx/shared';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
@@ -31,6 +35,7 @@ export default function EditSessionScreen() {
     defaultValues: {
       courtId: '',
       startsAt: new Date(),
+      durationMinutes: DEFAULT_SESSION_DURATION_MINUTES,
       sessionType: undefined,
       maxPlayers: undefined,
       description: '',
@@ -42,6 +47,7 @@ export default function EditSessionScreen() {
     reset({
       courtId: event.court_id,
       startsAt: new Date(event.starts_at),
+      durationMinutes: event.duration_minutes,
       sessionType: event.session_type,
       maxPlayers: event.max_players ?? undefined,
       skillMin: event.skill_min ?? undefined,
@@ -58,6 +64,7 @@ export default function EditSessionScreen() {
         await updateEvent.mutateAsync({
           courtId: values.courtId,
           startsAt: values.startsAt,
+          durationMinutes: values.durationMinutes,
           sessionType: values.sessionType,
           maxPlayers: values.maxPlayers,
           skillMin: values.skillMin,

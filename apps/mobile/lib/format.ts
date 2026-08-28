@@ -26,6 +26,25 @@ export function formatSessionTime(iso: string): string {
   });
 }
 
+/**
+ * "Fri, Aug 28 · 2:00 – 3:30 PM", collapsing to a single date when the session
+ * runs past midnight.
+ */
+export function formatSessionTimeRange(startIso: string, endIso: string): string {
+  const start = new Date(startIso);
+  const end = new Date(endIso);
+  const sameDay = start.toDateString() === end.toDateString();
+
+  const startPart = formatSessionDateTime(startIso);
+  const endPart = sameDay ? formatSessionTime(endIso) : formatSessionDateTime(endIso);
+
+  return `${startPart} – ${endPart}`;
+}
+
+export function isSessionInProgress(startIso: string, endIso: string, now = Date.now()): boolean {
+  return new Date(startIso).getTime() <= now && now < new Date(endIso).getTime();
+}
+
 export function formatRelativeTime(iso: string): string {
   const date = new Date(iso);
   const now = Date.now();

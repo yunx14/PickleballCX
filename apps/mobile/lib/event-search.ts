@@ -60,6 +60,8 @@ export interface SearchEventsRpcRow {
   id: string;
   court_id: string;
   starts_at: string;
+  duration_minutes: number;
+  ends_at: string;
   max_players: number | null;
   session_type: SessionType;
   skill_min: SkillLevel | null;
@@ -88,6 +90,8 @@ export function toEventSearchRow(row: SearchEventsRpcRow): EventSearchRow {
     id: row.id,
     court_id: row.court_id,
     starts_at: row.starts_at,
+    duration_minutes: row.duration_minutes,
+    ends_at: row.ends_at,
     max_players: row.max_players,
     session_type: row.session_type,
     skill_min: row.skill_min,
@@ -97,6 +101,9 @@ export function toEventSearchRow(row: SearchEventsRpcRow): EventSearchRow {
     lng: row.lng,
     created_by: row.created_by,
     created_at: row.created_at,
+    // Discovery never returns cancelled sessions, so these are always clear here.
+    cancelled_at: null,
+    cancellation_reason: null,
     courts: row.court_name
       ? {
           name: row.court_name,

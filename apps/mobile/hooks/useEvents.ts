@@ -18,6 +18,8 @@ export interface EventRow {
   id: string;
   court_id: string;
   starts_at: string;
+  duration_minutes: number;
+  ends_at: string;
   max_players: number | null;
   session_type: SessionType;
   skill_min: SkillLevel | null;
@@ -27,6 +29,8 @@ export interface EventRow {
   lng: number | null;
   created_by: string;
   created_at: string;
+  cancelled_at: string | null;
+  cancellation_reason: string | null;
   courts: EventCourt | null;
 }
 
@@ -34,6 +38,8 @@ const EVENT_SELECT = `
   id,
   court_id,
   starts_at,
+  duration_minutes,
+  ends_at,
   max_players,
   session_type,
   skill_min,
@@ -43,17 +49,10 @@ const EVENT_SELECT = `
   lng,
   created_by,
   created_at,
+  cancelled_at,
+  cancellation_reason,
   courts ( name, address, num_courts )
 `;
-
-// A session that has already started is still "upcoming" to the people playing in
-// it, so it stays out of the past bucket until it has plausibly finished. Events
-// carry no duration yet, hence the fixed window.
-const IN_PROGRESS_WINDOW_MINUTES = 120;
-
-function upcomingCutoff(): string {
-  return new Date(Date.now() - IN_PROGRESS_WINDOW_MINUTES * 60_000).toISOString();
-}
 
 export interface EventRsvpRow {
   event_id: string;
@@ -69,7 +68,7 @@ async function fetchUpcomingEvents(): Promise<EventRow[]> {
   const { data, error } = await supabase
     .from('events')
     .select(EVENT_SELECT)
-    .gte('starts_at', now)
+    .gt('ends_at', now)
     .order('starts_at', { ascending: true });
 
   if (error) throw error;
@@ -83,7 +82,7 @@ async function fetchCourtEvents(courtId: string): Promise<EventRow[]> {
     .from('events')
     .select(EVENT_SELECT)
     .eq('court_id', courtId)
-    .gte('starts_at', now)
+    .gt('ends_at', now)
     .order('starts_at', { ascending: true });
 
   if (error) throw error;
@@ -108,7 +107,9 @@ async function fetchMyEvents(
   userId: string,
   timeframe: 'upcoming' | 'past',
 ): Promise<EventRow[]> {
-  const cutoff = upcomingCutoff();
+  // A session counts as upcoming until it ends, so a game in progress stays with
+  // the games you are about to play rather than jumping to your history.
+  const now = new Date().toISOString();
 
   const { data: rsvps, error: rsvpError } = await supabase
     .from('event_rsvps')
@@ -123,9 +124,9 @@ async function fetchMyEvents(
   let query = supabase.from('events').select(EVENT_SELECT);
 
   if (timeframe === 'upcoming') {
-    query = query.gte('starts_at', cutoff).order('starts_at', { ascending: true });
+    query = query.gt('ends_at', now).order('starts_at', { ascending: true });
   } else {
-    query = query.lt('starts_at', cutoff).order('starts_at', { ascending: false });
+    query = query.lte('ends_at', now).order('starts_at', { ascending: false });
   }
 
   if (rsvpIds.length > 0) {
@@ -145,7 +146,7 @@ async function fetchMyHostedUpcomingEvents(userId: string): Promise<EventRow[]> 
     .from('events')
     .select(EVENT_SELECT)
     .eq('created_by', userId)
-    .gte('starts_at', upcomingCutoff())
+    .gt('ends_at', new Date().toISOString())
     .order('starts_at', { ascending: true });
 
   if (error) throw error;
@@ -196,6 +197,8 @@ function normalizeEventRow(row: Record<string, unknown>): EventRow {
     id: row.id as string,
     court_id: row.court_id as string,
     starts_at: row.starts_at as string,
+    duration_minutes: row.duration_minutes as number,
+    ends_at: row.ends_at as string,
     max_players: row.max_players as number | null,
     session_type: row.session_type as SessionType,
     skill_min: row.skill_min as SkillLevel | null,
@@ -205,6 +208,8 @@ function normalizeEventRow(row: Record<string, unknown>): EventRow {
     lng: row.lng as number | null,
     created_by: row.created_by as string,
     created_at: row.created_at as string,
+    cancelled_at: (row.cancelled_at as string | null) ?? null,
+    cancellation_reason: (row.cancellation_reason as string | null) ?? null,
     courts: courts && !Array.isArray(courts) ? (courts as EventCourt) : null,
   };
 }
@@ -327,6 +332,7 @@ export function useCreateEvent() {
     mutationFn: async (input: {
       courtId: string;
       startsAt: Date;
+      durationMinutes: number;
       sessionType: SessionType;
       maxPlayers?: number;
       skillMin?: SkillLevel;
@@ -340,6 +346,7 @@ export function useCreateEvent() {
         .insert({
           court_id: input.courtId,
           starts_at: input.startsAt.toISOString(),
+          duration_minutes: input.durationMinutes,
           session_type: input.sessionType,
           max_players: input.maxPlayers ?? null,
           skill_min: input.skillMin ?? null,
@@ -369,6 +376,7 @@ export function useUpdateEvent(eventId: string) {
     mutationFn: async (input: {
       courtId: string;
       startsAt: Date;
+      durationMinutes: number;
       sessionType: SessionType;
       maxPlayers?: number;
       skillMin?: SkillLevel;
@@ -380,6 +388,7 @@ export function useUpdateEvent(eventId: string) {
         .update({
           court_id: input.courtId,
           starts_at: input.startsAt.toISOString(),
+          duration_minutes: input.durationMinutes,
           session_type: input.sessionType,
           max_players: input.maxPlayers ?? null,
           skill_min: input.skillMin ?? null,
@@ -396,6 +405,68 @@ export function useUpdateEvent(eventId: string) {
       void queryClient.invalidateQueries({ queryKey: [...queryKeys.events.all, 'mine'] });
       void queryClient.invalidateQueries({ queryKey: [...queryKeys.events.all, 'hostedUpcoming'] });
       void queryClient.invalidateQueries({ queryKey: queryKeys.events.court(input.courtId) });
+    },
+  });
+}
+
+function useCancellationMutation(eventId: string, run: () => Promise<void>) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: run,
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: queryKeys.events.detail(eventId) });
+      void queryClient.invalidateQueries({ queryKey: [...queryKeys.events.all, 'upcoming'] });
+      void queryClient.invalidateQueries({ queryKey: [...queryKeys.events.all, 'mine'] });
+      void queryClient.invalidateQueries({ queryKey: [...queryKeys.events.all, 'hostedUpcoming'] });
+    },
+  });
+}
+
+export function useCancelEvent(eventId: string) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (reason?: string) => {
+      const { error } = await supabase.rpc('cancel_event', {
+        p_event_id: eventId,
+        p_reason: reason?.trim() || null,
+      });
+
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: queryKeys.events.detail(eventId) });
+      void queryClient.invalidateQueries({ queryKey: [...queryKeys.events.all, 'upcoming'] });
+      void queryClient.invalidateQueries({ queryKey: [...queryKeys.events.all, 'mine'] });
+      void queryClient.invalidateQueries({ queryKey: [...queryKeys.events.all, 'hostedUpcoming'] });
+    },
+  });
+}
+
+export function useReinstateEvent(eventId: string) {
+  return useCancellationMutation(eventId, async () => {
+    const { error } = await supabase.rpc('reinstate_event', { p_event_id: eventId });
+    if (error) throw error;
+  });
+}
+
+export function useBroadcastToAttendees(eventId: string) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    // Returns how many players the message reached.
+    mutationFn: async (message: string) => {
+      const { data, error } = await supabase.rpc('broadcast_to_attendees', {
+        p_event_id: eventId,
+        p_message: message,
+      });
+
+      if (error) throw error;
+      return data ?? 0;
+    },
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: queryKeys.notifications.all });
     },
   });
 }
