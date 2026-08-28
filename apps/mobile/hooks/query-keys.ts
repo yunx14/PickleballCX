@@ -19,6 +19,8 @@ export const queryKeys = {
       lng?: number;
       radiusMi?: number;
     }) => [...queryKeys.events.all, 'upcoming', filter ?? {}] as const,
+    search: (filter?: Record<string, unknown>) =>
+      [...queryKeys.events.all, 'search', filter ?? {}] as const,
     group: (groupId: string) => [...queryKeys.events.all, 'group', groupId] as const,
     court: (courtId: string) => [...queryKeys.events.all, 'court', courtId] as const,
     detail: (eventId: string) => [...queryKeys.events.all, 'detail', eventId] as const,

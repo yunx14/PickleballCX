@@ -1,5 +1,5 @@
 import { router } from 'expo-router';
-import { useMemo, type ReactNode } from 'react';
+import { useMemo, useState, type ReactNode } from 'react';
 import {
   ActivityIndicator,
   FlatList,
@@ -10,19 +10,27 @@ import {
   View,
 } from 'react-native';
 
+import { GameSearchBar } from '@/components/sessions/GameSearchBar';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { SessionCard } from '@/components/ui/SessionCard';
 import { brand } from '@/constants/brand';
 import { border, spacing, typography } from '@/constants/theme';
-import {
-  useMyEventRsvps,
-  useMyHostedUpcomingEvents,
-  useUpcomingEvents,
-  type EventRow,
-} from '@/hooks/useEvents';
+import { useMyHostedUpcomingEvents, type EventRow } from '@/hooks/useEvents';
+import { useSearchEvents } from '@/hooks/useSearchEvents';
+import { useSearchLocation } from '@/hooks/useSearchLocation';
 import { useSessionCardColumns } from '@/hooks/useSessionCardColumns';
+import { useDebouncedValue } from '@/hooks/useDebouncedValue';
 import { useUserLocation } from '@/hooks/useUserLocation';
-import { distanceToEventKm, skillMatchesEvent } from '@/lib/event-filters';
+import { distanceToEventKm } from '@/lib/event-filters';
+import {
+  RADIUS_FILTER_ANY,
+  SESSION_TYPE_FILTER_ANY,
+  SKILL_FILTER_ANY,
+  hasActiveEventFilters,
+  type RadiusFilter,
+  type SessionTypeFilter,
+  type SkillFilter,
+} from '@/lib/event-search';
 import { formatDistanceMiles } from '@/lib/geo';
 import { mapTabRoute, sessionRoute } from '@/lib/routes';
 import { useAuth } from '@/providers/AuthProvider';
@@ -33,9 +41,30 @@ export function SessionsFeed({ header }: { header?: ReactNode } = {}) {
   const isAppAdmin = profile?.is_app_admin ?? false;
   const { columns, cardWidth, gap } = useSessionCardColumns();
 
+  const [search, setSearch] = useState('');
+  const [skill, setSkill] = useState<SkillFilter>(SKILL_FILTER_ANY);
+  const [sessionType, setSessionType] = useState<SessionTypeFilter>(SESSION_TYPE_FILTER_ANY);
+  const [radius, setRadius] = useState<RadiusFilter>(RADIUS_FILTER_ANY);
+  const debouncedSearch = useDebouncedValue(search);
+  const searchLocation = useSearchLocation();
+
   const { data: locationResult, refetch: refetchLocation } = useUserLocation();
-  const location = locationResult?.coords ?? null;
   const locationStatus = locationResult?.status ?? 'unavailable';
+  const location = searchLocation.coords;
+
+  const searchFilter = useMemo(
+    () => ({
+      search: debouncedSearch,
+      skill,
+      sessionType,
+      radius,
+      location,
+      excludeUserId: userId,
+    }),
+    [debouncedSearch, skill, sessionType, radius, location, userId],
+  );
+
+  const filtersActive = hasActiveEventFilters(searchFilter) || searchLocation.mode === 'city';
 
   const {
     data: events,
@@ -43,32 +72,50 @@ export function SessionsFeed({ header }: { header?: ReactNode } = {}) {
     isRefetching,
     refetch: refetchEvents,
     error,
-  } = useUpcomingEvents();
+  } = useSearchEvents(searchFilter);
 
-  const { data: myRsvps, refetch: refetchRsvps } = useMyEventRsvps();
   const hostedQuery = useMyHostedUpcomingEvents();
   const hostedEvents = hostedQuery.data?.events ?? [];
   const goingByEventId = hostedQuery.data?.goingByEventId ?? {};
 
-  const joinable = useMemo(() => {
-    const rsvpIds = new Set((myRsvps ?? []).map((row) => row.event_id));
+  const joinable = events ?? [];
 
-    return (events ?? []).filter((event) => {
-      if (userId && event.created_by === userId) return false;
-      if (rsvpIds.has(event.id)) return false;
-      return skillMatchesEvent(profile?.skill_level, event.skill_min, event.skill_max);
-    });
-  }, [events, myRsvps, profile?.skill_level, userId]);
+  const clearFilters = () => {
+    setSearch('');
+    setSkill(SKILL_FILTER_ANY);
+    setSessionType(SESSION_TYPE_FILTER_ANY);
+    setRadius(RADIUS_FILTER_ANY);
+    searchLocation.useNearMe();
+  };
 
   const handleRefresh = () => {
     void refetchLocation();
     void refetchEvents();
-    void refetchRsvps();
     void hostedQuery.refetch();
   };
 
-  const renderSessionCard = (item: EventRow, goingCount?: number) => {
-    const distanceKm = distanceToEventKm(location, item);
+  const searchBar = (
+    <GameSearchBar
+      search={search}
+      onSearchChange={setSearch}
+      skill={skill}
+      onSkillChange={setSkill}
+      sessionType={sessionType}
+      onSessionTypeChange={setSessionType}
+      radius={radius}
+      onRadiusChange={setRadius}
+      location={searchLocation}
+      onClear={clearFilters}
+      showClear={filtersActive}
+    />
+  );
+
+  const renderSessionCard = (
+    item: EventRow & { distance_km?: number | null },
+    goingCount?: number,
+  ) => {
+    // The RPC computes distance server-side; fall back for rows without it.
+    const distanceKm = item.distance_km ?? distanceToEventKm(location, item);
     const distanceLabel = distanceKm != null ? formatDistanceMiles(distanceKm) : undefined;
 
     return (
@@ -87,6 +134,7 @@ export function SessionsFeed({ header }: { header?: ReactNode } = {}) {
     return (
       <View style={styles.listContainer}>
         {header ? <View style={styles.headerSlot}>{header}</View> : null}
+        <View style={styles.padded}>{searchBar}</View>
         <View style={styles.centered}>
           <ActivityIndicator size="large" color={brand.accent} />
         </View>
@@ -105,6 +153,7 @@ export function SessionsFeed({ header }: { header?: ReactNode } = {}) {
       {error ? (
         <View style={styles.padded}>
           {header}
+          {searchBar}
           <EmptyState title="Could not load sessions" body={error.message} />
         </View>
       ) : (
@@ -126,13 +175,22 @@ export function SessionsFeed({ header }: { header?: ReactNode } = {}) {
             <View>
               {header}
               <Text style={styles.sectionTitle}>Find games</Text>
+              {searchBar}
               {!joinable.length ? (
                 <View style={styles.emptyInList}>
                   <EmptyState
-                    title="No games to join yet"
-                    body="Open the map, tap a court pin, and schedule a session there."
+                    title={filtersActive ? 'No games match your search' : 'No games to join yet'}
+                    body={
+                      filtersActive
+                        ? 'Try a wider distance, a different city, or clear your filters.'
+                        : 'Open the map, tap a court pin, and schedule a session there.'
+                    }
                     action={
-                      isAppAdmin ? (
+                      filtersActive ? (
+                        <Pressable onPress={clearFilters} style={styles.secondaryLink}>
+                          <Text style={styles.secondaryLinkText}>Clear filters</Text>
+                        </Pressable>
+                      ) : isAppAdmin ? (
                         <Pressable onPress={() => router.push(mapTabRoute)} style={styles.secondaryLink}>
                           <Text style={styles.secondaryLinkText}>Manage courts</Text>
                         </Pressable>

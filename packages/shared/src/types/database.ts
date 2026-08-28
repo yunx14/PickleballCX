@@ -684,6 +684,40 @@ export interface Database {
           distance_km: number | null;
         }[];
       };
+      search_events: {
+        Args: {
+          viewer_lat?: number | null;
+          viewer_lng?: number | null;
+          radius_mi?: number | null;
+          search_query?: string | null;
+          skill_filter?: SkillLevel | null;
+          session_type_filter?: SessionType | null;
+          starts_before?: string | null;
+          exclude_user_id?: string | null;
+          max_results?: number | null;
+        };
+        Returns: {
+          id: string;
+          group_id: string | null;
+          court_id: string;
+          visibility: EventVisibility;
+          starts_at: string;
+          max_players: number | null;
+          session_type: SessionType;
+          skill_min: SkillLevel | null;
+          skill_max: SkillLevel | null;
+          description: string | null;
+          lat: number | null;
+          lng: number | null;
+          created_by: string;
+          created_at: string;
+          court_name: string | null;
+          court_address: string | null;
+          court_num_courts: number | null;
+          going_count: number;
+          distance_km: number | null;
+        }[];
+      };
     };
     Enums: {
       skill_level: SkillLevel;
