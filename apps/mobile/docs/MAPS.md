@@ -64,7 +64,7 @@ Opening directions in Google Maps / Apple Maps uses [`lib/maps-links.ts`](../lib
 
 ## Location-based discovery
 
-The Home tab uses `expo-location` to read the device position and filter **public open sessions** by radius (25 / 50 / 100 mi). Group sessions and your own sessions always appear.
+The Home tab uses `expo-location` to read the device position and filter **public open sessions** by radius (25 / 50 / 100 mi). Your own sessions always appear.
 
 Implementation:
 

@@ -9,8 +9,8 @@ export default function PrivacyPolicyScreen() {
       <Text style={styles.updated}>Last updated: July 23, 2026</Text>
 
       <Text style={styles.paragraph}>
-        PickleballCX ("we", "our", "the app") helps pickleball groups coordinate sessions,
-        courts, and RSVPs. This policy describes what we collect and how we use it.
+        PickleballCX ("we", "our", "the app") helps pickleball players find and coordinate
+        sessions, courts, and RSVPs. This policy describes what we collect and how we use it.
       </Text>
 
       <Text style={styles.heading}>Information we collect</Text>
@@ -19,8 +19,7 @@ export default function PrivacyPolicyScreen() {
         self-reported skill level.
       </Text>
       <Text style={styles.paragraph}>
-        Group and session data you create: group names, court locations, session times, RSVPs,
-        comments, and announcements.
+        Session data you create: court locations, session times, RSVPs, and comments.
       </Text>
       <Text style={styles.paragraph}>
         Location data (optional): if you grant permission, we use your device location to show
@@ -29,20 +28,20 @@ export default function PrivacyPolicyScreen() {
       </Text>
       <Text style={styles.paragraph}>
         Push notification tokens: if you allow notifications on a mobile device, we store a device
-        token so we can send session and group alerts.
+        token so we can send session alerts.
       </Text>
 
       <Text style={styles.heading}>How we use information</Text>
       <Text style={styles.paragraph}>
-        We use your data to operate the app: authentication, showing your groups and sessions,
-        displaying attendee lists with skill levels, and sending notifications about sessions and
-        announcements in groups you belong to.
+        We use your data to operate the app: authentication, showing sessions near you, displaying
+        attendee lists with skill levels, and sending notifications about sessions you host or
+        joined.
       </Text>
 
       <Text style={styles.heading}>Sharing</Text>
       <Text style={styles.paragraph}>
-        Information in a group (members, sessions, RSVPs, comments) is visible to other members of
-        that group. Public sessions may be visible to all signed-in users. We do not sell your
+        Session information (attendees, RSVPs, comments) is visible to other players in that
+        session, and public sessions may be visible to all signed-in users. We do not sell your
         personal information.
       </Text>
 

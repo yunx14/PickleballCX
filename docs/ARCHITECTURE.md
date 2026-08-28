@@ -21,7 +21,7 @@ flowchart TB
   subgraph supabase [Supabase project]
     Auth[Auth<br/>email signup / login]
     DB[(PostgreSQL + RLS)]
-    Realtime[Realtime<br/>comments, messages, invites]
+    Realtime[Realtime<br/>session comments]
     EdgeFn[dispatch-notification<br/>Edge Function]
   end
 
@@ -53,7 +53,7 @@ flowchart TB
 | **Expo app** | UI, navigation, forms; uses `@supabase/supabase-js` and TanStack Query |
 | **Supabase Auth** | Email/password signup, sessions (JWT) |
 | **PostgreSQL + RLS** | All app data; row-level security enforces who can read/write |
-| **Realtime** | Live updates for session comments, player messages, session invites |
+| **Realtime** | Live updates for session comments |
 | **Edge Function** | Builds and sends push payloads via Expo when DB triggers fire |
 | **Vercel** | Hosts static web export only (not the backend) |
 | **Google Maps** | Geocode addresses, session card maps (`react-native-maps` native / Static Maps web) |
@@ -62,7 +62,7 @@ flowchart TB
 
 ## User journey (how players use the app)
 
-Maps to the main tabs: **Home**, **Sessions**, **Players**, **Groups**, **Profile**.
+Maps to the main tabs: **Home**, **Map**, **My Games**, **Profile**.
 
 ```mermaid
 flowchart LR
@@ -71,32 +71,26 @@ flowchart LR
     Profile[Set profile + city]
   end
 
-  subgraph groups [Groups]
-    Join[Join via invite code]
-    Announce[Read announcements]
+  subgraph find [Find a game]
+    Search[Search by city, distance,<br/>skill, session type]
+    Map[Browse courts on the map]
   end
 
   subgraph play [Play]
-    Session[Browse / create sessions]
+    Session[Open a session]
     RSVP[RSVP with skill visible]
     Comments[Session comments]
-  end
-
-  subgraph discover [Find players]
-    Find[Discover nearby players]
-    Match[Request match]
-    Chat[Message after connect]
-    Invite[Invite to session]
+    Host[Create your own session]
   end
 
   SignUp --> Profile
-  Profile --> Join
-  Profile --> Session
-  Profile --> Find
-  Join --> Session
+  Profile --> Search
+  Profile --> Map
+  Search --> Session
+  Map --> Session
   Session --> RSVP
   Session --> Comments
-  Find --> Match --> Chat --> Invite --> Session
+  Profile --> Host --> Session
 ```
 
 ---
@@ -119,7 +113,7 @@ sequenceDiagram
   App->>DB: read / write via supabase-js
   Note over DB: RLS enforces who sees what
 
-  User->>App: Post comment / message / RSVP
+  User->>App: Post comment / RSVP
   App->>DB: insert row
   DB-->>App: Realtime update to other clients
   DB->>Push: trigger (optional)
@@ -134,7 +128,7 @@ Database triggers call `private.dispatch_notification`, which POSTs to the Edge 
 
 ```mermaid
 flowchart LR
-  Insert[Insert row<br/>event, comment,<br/>announcement,<br/>match request,<br/>message, invite]
+  Insert[Insert or update row<br/>event, comment, RSVP]
   Trigger[Postgres trigger]
   PgNet[pg_net HTTP POST]
   EdgeFn[dispatch-notification]
@@ -149,15 +143,12 @@ flowchart LR
 
 | Event | Who gets notified |
 |-------|-------------------|
-| New group session | Group members (except creator) |
-| Session comment | Creator + RSVPs (except author) |
-| Group announcement | Group members (except author) |
-| Match request | Recipient |
-| Match accepted | Requester |
-| Player message | Other participant |
-| Session invite | Invited player |
+| Session comment | Host + RSVPs (except author) |
+| New RSVP | Host |
+| Session updated | Attendees |
+| Session cancelled | Attendees |
 
-Public/open sessions do not broadcast push to all users (MVP anti-spam). See [`DEPLOY.md`](../DEPLOY.md) for setup.
+New sessions do not broadcast push to all users (MVP anti-spam). See [`DEPLOY.md`](../DEPLOY.md) for setup.
 
 ---
 
@@ -181,9 +172,8 @@ flowchart TB
 
 - **Auth:** Supabase JWT; app sends token on every API call.
 - **RLS:** Postgres policies on all public tables; users only see rows they’re allowed to access.
-- **Private schema:** Helper functions (`private.is_group_member`, `private.can_access_event`, etc.) are not exposed via the Data API.
-- **Discovery:** `discover_players()` RPC is security definer and returns only safe fields (no email/phone/exact coords).
-- **Match messaging:** 1:1 threads only after an accepted match request; session invites require a connected player pair.
+- **Private schema:** Helper functions (`private.can_access_event`, etc.) are not exposed via the Data API.
+- **Search:** `search_events()` RPC is security definer, revoked from `anon`, and returns only public upcoming sessions.
 
 ---
 

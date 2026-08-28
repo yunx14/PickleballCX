@@ -82,20 +82,6 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
-        name="players"
-        options={{
-          href: null,
-          headerShown: false,
-        }}
-      />
-      <Tabs.Screen
-        name="groups"
-        options={{
-          href: null,
-          headerShown: false,
-        }}
-      />
-      <Tabs.Screen
         name="profile"
         options={{
           href: null,

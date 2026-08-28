@@ -15,8 +15,8 @@ export default function TermsOfServiceScreen() {
 
       <Text style={styles.heading}>The service</Text>
       <Text style={styles.paragraph}>
-        PickleballCX helps pickleball groups coordinate sessions, courts, RSVPs, comments, and
-        announcements. We may update features over time; material changes to these Terms will be
+        PickleballCX helps pickleball players find and coordinate sessions, courts, RSVPs, and
+        comments. We may update features over time; material changes to these Terms will be
         reflected on this page.
       </Text>
 
@@ -31,14 +31,14 @@ export default function TermsOfServiceScreen() {
       <Text style={styles.paragraph}>
         Use the app only for lawful pickleball coordination. Do not harass other users, post
         spam, attempt to access data you are not permitted to see, or interfere with the service.
-        Group admins are responsible for the culture and content of their groups.
+        Session hosts are responsible for the conduct of the games they organize.
       </Text>
 
       <Text style={styles.heading}>Content you create</Text>
       <Text style={styles.paragraph}>
-        You retain ownership of content you submit (session details, comments, announcements, court
-        notes). You grant us a license to store, display, and process that content solely to operate
-        the app—for example, showing RSVPs to group members or sending notifications about sessions
+        You retain ownership of content you submit (session details, comments, court notes). You
+        grant us a license to store, display, and process that content solely to operate the
+        app—for example, showing RSVPs to other attendees or sending notifications about sessions
         you participate in.
       </Text>
 
@@ -46,7 +46,7 @@ export default function TermsOfServiceScreen() {
       <Text style={styles.paragraph}>
         Location and push notification permissions are optional. If enabled, location is used to
         filter nearby public sessions on your device; push tokens are stored so we can deliver alerts
-        about sessions and group activity. See our Privacy Policy for details.
+        about session activity. See our Privacy Policy for details.
       </Text>
 
       <Text style={styles.heading}>Disclaimer</Text>

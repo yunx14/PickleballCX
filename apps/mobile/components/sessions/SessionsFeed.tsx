@@ -103,8 +103,8 @@ export function SessionsFeed({ header }: { header?: ReactNode } = {}) {
   );
 
   const renderSessionCard = (
-    item: EventRow & { distance_km?: number | null },
-    goingCount?: number,
+    item: EventRow & { distance_km?: number | null; going_count?: number },
+    goingCount = item.going_count,
   ) => {
     // The RPC computes distance server-side; fall back for rows without it.
     const distanceKm = item.distance_km ?? distanceToEventKm(location, item);

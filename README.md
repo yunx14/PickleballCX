@@ -6,7 +6,7 @@ Cross-platform pickleball coordination — web, iOS, and Android from a single E
 
 ## What it is
 
-**PickleballCX** replaces GroupMe chaos with structured profiles, sessions, groups, and lightweight in-app coordination. Instead of RSVPs buried in scrollback and unknown skill levels at the court, players get organized sessions, visible skill bands, court details, and tools to find and connect with other players nearby.
+**PickleballCX** replaces GroupMe chaos with structured profiles, searchable public sessions, and lightweight in-app coordination. Instead of RSVPs buried in scrollback and unknown skill levels at the court, players get organized sessions, visible skill bands, court details, and a way to find games near them.
 
 **Stack:** Expo (React Native) + Supabase (Postgres, Auth, Realtime, push infrastructure).
 
@@ -16,18 +16,9 @@ Cross-platform pickleball coordination — web, iOS, and Android from a single E
 
 - Email signup/login with profile setup
 - Display name and self-reported skill (beginner / intermediate / advanced)
-- Profile editing: city, play format, ranked preference
-- **Find players** opt-in (default on), **Available now** badge
+- Profile editing: display name, skill, city, avatar
 - City geocoding for distance (city only — no home address)
 - Terms of Service and Privacy Policy
-
-### Groups
-
-- Create private groups with invite codes
-- Join by invite code
-- Member list with skill levels
-- Group announcements
-- Group-scoped session lists
 
 ### Courts & venues
 
@@ -37,48 +28,37 @@ Cross-platform pickleball coordination — web, iOS, and Android from a single E
 
 ### Sessions & RSVPs
 
-- Create sessions at a court (public or group-only)
-- Session type: open play vs fixed group
+- Create public sessions at a court
+- Session type: open play vs fixed group size
 - Optional max players, skill min/max, description
 - RSVP: going / maybe / not going / waitlist
 - Attendee list with display names and skill levels
 - Session comments (realtime)
 - Edit/delete sessions (creator)
-- Home feed and Sessions tab with location-based discovery for public sessions
+- Home feed with game search by city, distance, skill, and session type
 
 ### Communication & notifications
 
 - Session comments
-- Group announcements
-- Push notification infrastructure (new sessions, comments, announcements, match requests, messages, session invites) — E2E push deferred until native device + dev accounts (see [`NOTES.md`](NOTES.md))
-
-### Find players (player discovery)
-
-- **Players tab:** browse nearby discoverable players
-- Search by name/city; filters for skill, format, distance (25/50/100 mi)
-- Match fit % from skill, format, and distance
-- **Match requests:** send, accept/decline, cancel; one pending request per pair
-- **1:1 messaging** after connect (realtime chat)
-- **Session invites** to connected players; invitee can accept and auto-RSVP
+- Push notification infrastructure (comments, RSVPs, session updates and cancellations) — E2E push deferred until native device + dev accounts (see [`NOTES.md`](NOTES.md))
 
 ## App structure (main tabs)
 
 | Tab | Purpose |
 |-----|---------|
-| **Home** | Upcoming sessions overview |
-| **Sessions** | Browse/create sessions, filters, public discovery |
-| **Players** | Find players, match requests, messaging, invites |
-| **Groups** | Your groups, create/join |
-| **Profile** | Edit profile and discovery settings |
+| **Home** | Find games near you, plus the sessions you host |
+| **Map** | Browse courts and their upcoming sessions |
+| **My Games** | Upcoming and past games you host or joined |
+| **Profile** | Edit profile, sign out, legal links |
 
 ## Not in the app yet (planned / deferred)
 
-- DUPR rating sync (column exists; matching uses skill bands)
-- Public session marketplace at full scale (partial public sessions exist)
+- DUPR rating sync
 - Recurring sessions, calendar sync
-- Full group chat (only comments, announcements, and 1:1 player messages)
+- Player-to-player messaging (session comments only)
+- Shareable session links for inviting a specific person
 - Court reservations / payments
-- Block/report for messaging (called out for wider launch)
+- Player-added courts (admin-managed catalog today)
 
 ## Development
 

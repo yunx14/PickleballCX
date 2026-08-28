@@ -27,6 +27,7 @@ export function SessionCard({
       : goingCount != null
         ? `${goingCount}`
         : null;
+  const isFull = event.max_players != null && goingCount != null && goingCount >= event.max_players;
 
   return (
     <View style={styles.wrapper}>
@@ -49,7 +50,9 @@ export function SessionCard({
             {distanceLabel ? <Text style={styles.distance}>{distanceLabel}</Text> : null}
             {headcount ? (
               <View style={styles.headcountBadge}>
-                <Text style={styles.headcount}>{headcount} going</Text>
+                <Text style={styles.headcount}>
+                  {isFull ? `${headcount} · full` : `${headcount} going`}
+                </Text>
               </View>
             ) : null}
           </View>

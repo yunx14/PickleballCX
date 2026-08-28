@@ -17,6 +17,9 @@ const SKILL_RANK: Record<SkillLevel, number> = {
 export const DISCOVERY_RADIUS_OPTIONS_MI = [25, 50, 100] as const;
 export type DiscoveryRadiusMi = (typeof DISCOVERY_RADIUS_OPTIONS_MI)[number];
 
+export const SKILL_FILTER_ANY = 'any' as const;
+export type SkillFilter = SkillLevel | typeof SKILL_FILTER_ANY;
+
 export interface UpcomingEventsFilter {
   userId?: string;
   userSkill?: SkillLevel | null;
@@ -38,10 +41,6 @@ export function skillMatchesEvent(
   return userRank >= minRank && userRank <= maxRank;
 }
 
-function isPublicStandalone(event: EventRow): boolean {
-  return event.group_id == null && event.visibility === 'public';
-}
-
 export function filterUpcomingEvents(
   events: EventRow[],
   filter: UpcomingEventsFilter,
@@ -50,8 +49,6 @@ export function filterUpcomingEvents(
     filter.radiusMi != null ? milesToKm(filter.radiusMi) : undefined;
 
   return events.filter((event) => {
-    if (!isPublicStandalone(event)) return false;
-
     if (!filter.location || radiusKm == null) return true;
 
     if (event.lat == null || event.lng == null) return true;

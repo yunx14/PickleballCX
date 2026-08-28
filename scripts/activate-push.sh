@@ -21,7 +21,7 @@ RESPONSE="$(curl -sS -X POST \
   "https://emdafxfzuutjrdusrvlg.supabase.co/functions/v1/dispatch-notification" \
   -H "Content-Type: application/json" \
   -H "x-webhook-secret: $SECRET" \
-  -d '{"table":"events","type":"INSERT","record":{"id":"00000000-0000-0000-0000-000000000000","group_id":null,"created_by":"00000000-0000-0000-0000-000000000000","starts_at":"2099-01-01T00:00:00.000Z"}}')"
+  -d '{"table":"events","type":"INSERT","record":{"id":"00000000-0000-0000-0000-000000000000","created_by":"00000000-0000-0000-0000-000000000000","starts_at":"2099-01-01T00:00:00.000Z"}}')"
 
 echo "$RESPONSE"
 

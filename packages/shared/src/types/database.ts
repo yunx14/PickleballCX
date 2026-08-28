@@ -1,15 +1,8 @@
 import type {
   SkillLevel,
-  ProfileVisibility,
   CourtType,
   SessionType,
-  EventVisibility,
   RsvpStatus,
-  GroupMemberRole,
-  PlayFormat,
-  RankedPreference,
-  MatchRequestStatus,
-  SessionInviteStatus,
   UserNotificationType,
 } from '../constants';
 
@@ -30,18 +23,11 @@ export interface Database {
           display_name: string;
           avatar_url: string | null;
           skill_level: SkillLevel | null;
-          profile_visibility: ProfileVisibility;
           phone: string | null;
           is_app_admin: boolean;
           city: string | null;
           city_lat: number | null;
           city_lng: number | null;
-          dupr_rating: number | null;
-          play_format: PlayFormat;
-          ranked_preference: RankedPreference;
-          available_now: boolean;
-          available_until: string | null;
-          discovery_enabled: boolean;
           created_at: string;
           updated_at: string;
         };
@@ -50,18 +36,11 @@ export interface Database {
           display_name: string;
           avatar_url?: string | null;
           skill_level?: SkillLevel | null;
-          profile_visibility?: ProfileVisibility;
           phone?: string | null;
           is_app_admin?: boolean;
           city?: string | null;
           city_lat?: number | null;
           city_lng?: number | null;
-          dupr_rating?: number | null;
-          play_format?: PlayFormat;
-          ranked_preference?: RankedPreference;
-          available_now?: boolean;
-          available_until?: string | null;
-          discovery_enabled?: boolean;
           created_at?: string;
           updated_at?: string;
         };
@@ -70,93 +49,15 @@ export interface Database {
           display_name?: string;
           avatar_url?: string | null;
           skill_level?: SkillLevel | null;
-          profile_visibility?: ProfileVisibility;
           phone?: string | null;
           is_app_admin?: boolean;
           city?: string | null;
           city_lat?: number | null;
           city_lng?: number | null;
-          dupr_rating?: number | null;
-          play_format?: PlayFormat;
-          ranked_preference?: RankedPreference;
-          available_now?: boolean;
-          available_until?: string | null;
-          discovery_enabled?: boolean;
           created_at?: string;
           updated_at?: string;
         };
         Relationships: [];
-      };
-      groups: {
-        Row: {
-          id: string;
-          name: string;
-          invite_code: string;
-          created_by: string;
-          created_at: string;
-          updated_at: string;
-        };
-        Insert: {
-          id?: string;
-          name: string;
-          invite_code: string;
-          created_by: string;
-          created_at?: string;
-          updated_at?: string;
-        };
-        Update: {
-          id?: string;
-          name?: string;
-          invite_code?: string;
-          created_by?: string;
-          created_at?: string;
-          updated_at?: string;
-        };
-        Relationships: [
-          {
-            foreignKeyName: 'groups_created_by_fkey',
-            columns: ['created_by'],
-            isOneToOne: false,
-            referencedRelation: 'profiles',
-            referencedColumns: ['id'],
-          },
-        ];
-      };
-      group_members: {
-        Row: {
-          group_id: string;
-          user_id: string;
-          role: GroupMemberRole;
-          joined_at: string;
-        };
-        Insert: {
-          group_id: string;
-          user_id: string;
-          role?: GroupMemberRole;
-          joined_at?: string;
-        };
-        Update: {
-          group_id?: string;
-          user_id?: string;
-          role?: GroupMemberRole;
-          joined_at?: string;
-        };
-        Relationships: [
-          {
-            foreignKeyName: 'group_members_group_id_fkey',
-            columns: ['group_id'],
-            isOneToOne: false,
-            referencedRelation: 'groups',
-            referencedColumns: ['id'],
-          },
-          {
-            foreignKeyName: 'group_members_user_id_fkey',
-            columns: ['user_id'],
-            isOneToOne: false,
-            referencedRelation: 'profiles',
-            referencedColumns: ['id'],
-          },
-        ];
       };
       courts: {
         Row: {
@@ -203,9 +104,7 @@ export interface Database {
       events: {
         Row: {
           id: string;
-          group_id: string | null;
           court_id: string;
-          visibility: EventVisibility;
           starts_at: string;
           max_players: number | null;
           session_type: SessionType;
@@ -220,9 +119,7 @@ export interface Database {
         };
         Insert: {
           id?: string;
-          group_id?: string | null;
           court_id: string;
-          visibility?: EventVisibility;
           starts_at: string;
           max_players?: number | null;
           session_type?: SessionType;
@@ -237,9 +134,7 @@ export interface Database {
         };
         Update: {
           id?: string;
-          group_id?: string | null;
           court_id?: string;
-          visibility?: EventVisibility;
           starts_at?: string;
           max_players?: number | null;
           session_type?: SessionType;
@@ -258,13 +153,6 @@ export interface Database {
             columns: ['court_id'],
             isOneToOne: false,
             referencedRelation: 'courts',
-            referencedColumns: ['id'],
-          },
-          {
-            foreignKeyName: 'events_group_id_fkey',
-            columns: ['group_id'],
-            isOneToOne: false,
-            referencedRelation: 'groups',
             referencedColumns: ['id'],
           },
           {
@@ -357,219 +245,6 @@ export interface Database {
           },
         ];
       };
-      group_announcements: {
-        Row: {
-          id: string;
-          group_id: string;
-          author_id: string;
-          title: string;
-          body: string;
-          pinned: boolean;
-          created_at: string;
-          updated_at: string;
-        };
-        Insert: {
-          id?: string;
-          group_id: string;
-          author_id: string;
-          title: string;
-          body: string;
-          pinned?: boolean;
-          created_at?: string;
-          updated_at?: string;
-        };
-        Update: {
-          id?: string;
-          group_id?: string;
-          author_id?: string;
-          title?: string;
-          body?: string;
-          pinned?: boolean;
-          created_at?: string;
-          updated_at?: string;
-        };
-        Relationships: [
-          {
-            foreignKeyName: 'group_announcements_author_id_fkey',
-            columns: ['author_id'],
-            isOneToOne: false,
-            referencedRelation: 'profiles',
-            referencedColumns: ['id'],
-          },
-          {
-            foreignKeyName: 'group_announcements_group_id_fkey',
-            columns: ['group_id'],
-            isOneToOne: false,
-            referencedRelation: 'groups',
-            referencedColumns: ['id'],
-          },
-        ];
-      };
-      match_requests: {
-        Row: {
-          id: string;
-          from_user_id: string;
-          to_user_id: string;
-          status: MatchRequestStatus;
-          message: string | null;
-          created_at: string;
-          responded_at: string | null;
-        };
-        Insert: {
-          id?: string;
-          from_user_id: string;
-          to_user_id: string;
-          status?: MatchRequestStatus;
-          message?: string | null;
-          created_at?: string;
-          responded_at?: string | null;
-        };
-        Update: {
-          id?: string;
-          from_user_id?: string;
-          to_user_id?: string;
-          status?: MatchRequestStatus;
-          message?: string | null;
-          created_at?: string;
-          responded_at?: string | null;
-        };
-        Relationships: [
-          {
-            foreignKeyName: 'match_requests_from_user_id_fkey';
-            columns: ['from_user_id'];
-            isOneToOne: false;
-            referencedRelation: 'profiles';
-            referencedColumns: ['id'];
-          },
-          {
-            foreignKeyName: 'match_requests_to_user_id_fkey';
-            columns: ['to_user_id'];
-            isOneToOne: false;
-            referencedRelation: 'profiles';
-            referencedColumns: ['id'];
-          },
-        ];
-      };
-      player_conversations: {
-        Row: {
-          id: string;
-          match_request_id: string;
-          created_at: string;
-        };
-        Insert: {
-          id?: string;
-          match_request_id: string;
-          created_at?: string;
-        };
-        Update: {
-          id?: string;
-          match_request_id?: string;
-          created_at?: string;
-        };
-        Relationships: [
-          {
-            foreignKeyName: 'player_conversations_match_request_id_fkey';
-            columns: ['match_request_id'];
-            isOneToOne: true;
-            referencedRelation: 'match_requests';
-            referencedColumns: ['id'];
-          },
-        ];
-      };
-      player_messages: {
-        Row: {
-          id: string;
-          conversation_id: string;
-          sender_id: string;
-          body: string;
-          created_at: string;
-        };
-        Insert: {
-          id?: string;
-          conversation_id: string;
-          sender_id: string;
-          body: string;
-          created_at?: string;
-        };
-        Update: {
-          id?: string;
-          conversation_id?: string;
-          sender_id?: string;
-          body?: string;
-          created_at?: string;
-        };
-        Relationships: [
-          {
-            foreignKeyName: 'player_messages_conversation_id_fkey';
-            columns: ['conversation_id'];
-            isOneToOne: false;
-            referencedRelation: 'player_conversations';
-            referencedColumns: ['id'];
-          },
-          {
-            foreignKeyName: 'player_messages_sender_id_fkey';
-            columns: ['sender_id'];
-            isOneToOne: false;
-            referencedRelation: 'profiles';
-            referencedColumns: ['id'];
-          },
-        ];
-      };
-      session_invites: {
-        Row: {
-          id: string;
-          event_id: string;
-          invited_user_id: string;
-          invited_by: string;
-          status: SessionInviteStatus;
-          message: string | null;
-          created_at: string;
-          responded_at: string | null;
-        };
-        Insert: {
-          id?: string;
-          event_id: string;
-          invited_user_id: string;
-          invited_by: string;
-          status?: SessionInviteStatus;
-          message?: string | null;
-          created_at?: string;
-          responded_at?: string | null;
-        };
-        Update: {
-          id?: string;
-          event_id?: string;
-          invited_user_id?: string;
-          invited_by?: string;
-          status?: SessionInviteStatus;
-          message?: string | null;
-          created_at?: string;
-          responded_at?: string | null;
-        };
-        Relationships: [
-          {
-            foreignKeyName: 'session_invites_event_id_fkey';
-            columns: ['event_id'];
-            isOneToOne: false;
-            referencedRelation: 'events';
-            referencedColumns: ['id'];
-          },
-          {
-            foreignKeyName: 'session_invites_invited_user_id_fkey';
-            columns: ['invited_user_id'];
-            isOneToOne: false;
-            referencedRelation: 'profiles';
-            referencedColumns: ['id'];
-          },
-          {
-            foreignKeyName: 'session_invites_invited_by_fkey';
-            columns: ['invited_by'];
-            isOneToOne: false;
-            referencedRelation: 'profiles';
-            referencedColumns: ['id'];
-          },
-        ];
-      };
       push_tokens: {
         Row: {
           id: string;
@@ -656,33 +331,19 @@ export interface Database {
     };
     Views: Record<string, never>;
     Functions: {
-      get_group_preview_by_invite_code: {
-        Args: { p_invite_code: string };
-        Returns: { id: string; name: string }[];
-      };
-      join_group_by_invite_code: {
-        Args: { p_invite_code: string };
-        Returns: string;
-      };
-      discover_players: {
-        Args: {
-          viewer_lat?: number | null;
-          viewer_lng?: number | null;
-          radius_mi?: number | null;
-          search_query?: string | null;
-          skill_filter?: SkillLevel | null;
-          format_filter?: PlayFormat | null;
-        };
+      event_attendees: {
+        Args: { p_event_id: string };
         Returns: {
-          id: string;
+          user_id: string;
+          status: RsvpStatus;
           display_name: string;
-          city: string | null;
-          skill_level: SkillLevel;
-          play_format: PlayFormat;
-          ranked_preference: RankedPreference;
-          available_now: boolean;
-          distance_km: number | null;
+          avatar_url: string | null;
+          skill_level: SkillLevel | null;
         }[];
+      };
+      rsvp_to_event: {
+        Args: { p_event_id: string; p_status: RsvpStatus };
+        Returns: RsvpStatus;
       };
       search_events: {
         Args: {
@@ -698,9 +359,7 @@ export interface Database {
         };
         Returns: {
           id: string;
-          group_id: string | null;
           court_id: string;
-          visibility: EventVisibility;
           starts_at: string;
           max_players: number | null;
           session_type: SessionType;
@@ -721,16 +380,9 @@ export interface Database {
     };
     Enums: {
       skill_level: SkillLevel;
-      profile_visibility: ProfileVisibility;
       court_type: CourtType;
       session_type: SessionType;
-      event_visibility: EventVisibility;
       rsvp_status: RsvpStatus;
-      group_member_role: GroupMemberRole;
-      play_format: PlayFormat;
-      ranked_preference: RankedPreference;
-      match_request_status: MatchRequestStatus;
-      session_invite_status: SessionInviteStatus;
       user_notification_type: UserNotificationType;
     };
     CompositeTypes: Record<string, never>;
@@ -738,8 +390,4 @@ export interface Database {
 }
 
 export type Profile = Database['public']['Tables']['profiles']['Row'];
-export type MatchRequest = Database['public']['Tables']['match_requests']['Row'];
-export type PlayerConversation = Database['public']['Tables']['player_conversations']['Row'];
-export type PlayerMessage = Database['public']['Tables']['player_messages']['Row'];
-export type SessionInvite = Database['public']['Tables']['session_invites']['Row'];
 export type UserNotification = Database['public']['Tables']['user_notifications']['Row'];

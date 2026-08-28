@@ -1,9 +1,4 @@
-import type {
-  EventVisibility,
-  RsvpStatus,
-  SessionType,
-  SkillLevel,
-} from '@pickleballcx/shared';
+import type { RsvpStatus, SessionType, SkillLevel } from '@pickleballcx/shared';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
 import { supabase } from '@/lib/supabase';
@@ -19,15 +14,9 @@ export interface EventCourt {
   num_courts: number;
 }
 
-export interface EventGroup {
-  name: string;
-}
-
 export interface EventRow {
   id: string;
-  group_id: string | null;
   court_id: string;
-  visibility: EventVisibility;
   starts_at: string;
   max_players: number | null;
   session_type: SessionType;
@@ -39,7 +28,31 @@ export interface EventRow {
   created_by: string;
   created_at: string;
   courts: EventCourt | null;
-  groups: EventGroup | null;
+}
+
+const EVENT_SELECT = `
+  id,
+  court_id,
+  starts_at,
+  max_players,
+  session_type,
+  skill_min,
+  skill_max,
+  description,
+  lat,
+  lng,
+  created_by,
+  created_at,
+  courts ( name, address, num_courts )
+`;
+
+// A session that has already started is still "upcoming" to the people playing in
+// it, so it stays out of the past bucket until it has plausibly finished. Events
+// carry no duration yet, hence the fixed window.
+const IN_PROGRESS_WINDOW_MINUTES = 120;
+
+function upcomingCutoff(): string {
+  return new Date(Date.now() - IN_PROGRESS_WINDOW_MINUTES * 60_000).toISOString();
 }
 
 export interface EventRsvpRow {
@@ -55,29 +68,8 @@ async function fetchUpcomingEvents(): Promise<EventRow[]> {
   const now = new Date().toISOString();
   const { data, error } = await supabase
     .from('events')
-    .select(
-      `
-      id,
-      group_id,
-      court_id,
-      visibility,
-      starts_at,
-      max_players,
-      session_type,
-      skill_min,
-      skill_max,
-      description,
-      lat,
-      lng,
-      created_by,
-      created_at,
-      courts ( name, address, num_courts ),
-      groups ( name )
-    `,
-    )
+    .select(EVENT_SELECT)
     .gte('starts_at', now)
-    .is('group_id', null)
-    .eq('visibility', 'public')
     .order('starts_at', { ascending: true });
 
   if (error) throw error;
@@ -89,62 +81,8 @@ async function fetchCourtEvents(courtId: string): Promise<EventRow[]> {
   const now = new Date().toISOString();
   const { data, error } = await supabase
     .from('events')
-    .select(
-      `
-      id,
-      group_id,
-      court_id,
-      visibility,
-      starts_at,
-      max_players,
-      session_type,
-      skill_min,
-      skill_max,
-      description,
-      lat,
-      lng,
-      created_by,
-      created_at,
-      courts ( name, address, num_courts ),
-      groups ( name )
-    `,
-    )
+    .select(EVENT_SELECT)
     .eq('court_id', courtId)
-    .gte('starts_at', now)
-    .is('group_id', null)
-    .eq('visibility', 'public')
-    .order('starts_at', { ascending: true });
-
-  if (error) throw error;
-
-  return (data ?? []).map(normalizeEventRow);
-}
-
-async function fetchGroupEvents(groupId: string): Promise<EventRow[]> {
-  const now = new Date().toISOString();
-  const { data, error } = await supabase
-    .from('events')
-    .select(
-      `
-      id,
-      group_id,
-      court_id,
-      visibility,
-      starts_at,
-      max_players,
-      session_type,
-      skill_min,
-      skill_max,
-      description,
-      lat,
-      lng,
-      created_by,
-      created_at,
-      courts ( name, address, num_courts ),
-      groups ( name )
-    `,
-    )
-    .eq('group_id', groupId)
     .gte('starts_at', now)
     .order('starts_at', { ascending: true });
 
@@ -156,26 +94,7 @@ async function fetchGroupEvents(groupId: string): Promise<EventRow[]> {
 async function fetchEvent(eventId: string): Promise<EventRow | null> {
   const { data, error } = await supabase
     .from('events')
-    .select(
-      `
-      id,
-      group_id,
-      court_id,
-      visibility,
-      starts_at,
-      max_players,
-      session_type,
-      skill_min,
-      skill_max,
-      description,
-      lat,
-      lng,
-      created_by,
-      created_at,
-      courts ( name, address, num_courts ),
-      groups ( name )
-    `,
-    )
+    .select(EVENT_SELECT)
     .eq('id', eventId)
     .maybeSingle();
 
@@ -189,7 +108,7 @@ async function fetchMyEvents(
   userId: string,
   timeframe: 'upcoming' | 'past',
 ): Promise<EventRow[]> {
-  const now = new Date().toISOString();
+  const cutoff = upcomingCutoff();
 
   const { data: rsvps, error: rsvpError } = await supabase
     .from('event_rsvps')
@@ -201,31 +120,12 @@ async function fetchMyEvents(
 
   const rsvpIds = (rsvps ?? []).map((row) => row.event_id);
 
-  let query = supabase.from('events').select(
-    `
-      id,
-      group_id,
-      court_id,
-      visibility,
-      starts_at,
-      max_players,
-      session_type,
-      skill_min,
-      skill_max,
-      description,
-      lat,
-      lng,
-      created_by,
-      created_at,
-      courts ( name, address, num_courts ),
-      groups ( name )
-    `,
-  );
+  let query = supabase.from('events').select(EVENT_SELECT);
 
   if (timeframe === 'upcoming') {
-    query = query.gte('starts_at', now).order('starts_at', { ascending: true });
+    query = query.gte('starts_at', cutoff).order('starts_at', { ascending: true });
   } else {
-    query = query.lt('starts_at', now).order('starts_at', { ascending: false });
+    query = query.lt('starts_at', cutoff).order('starts_at', { ascending: false });
   }
 
   if (rsvpIds.length > 0) {
@@ -241,31 +141,11 @@ async function fetchMyEvents(
 }
 
 async function fetchMyHostedUpcomingEvents(userId: string): Promise<EventRow[]> {
-  const now = new Date().toISOString();
   const { data, error } = await supabase
     .from('events')
-    .select(
-      `
-      id,
-      group_id,
-      court_id,
-      visibility,
-      starts_at,
-      max_players,
-      session_type,
-      skill_min,
-      skill_max,
-      description,
-      lat,
-      lng,
-      created_by,
-      created_at,
-      courts ( name, address, num_courts ),
-      groups ( name )
-    `,
-    )
+    .select(EVENT_SELECT)
     .eq('created_by', userId)
-    .gte('starts_at', now)
+    .gte('starts_at', upcomingCutoff())
     .order('starts_at', { ascending: true });
 
   if (error) throw error;
@@ -291,47 +171,30 @@ async function fetchGoingCounts(eventIds: string[]): Promise<Record<string, numb
   return counts;
 }
 
+// Uses the event_attendees RPC rather than joining profiles directly: profile reads
+// are gated on co-attendance, so a direct join silently drops every name for a
+// player browsing a session they have not joined.
 async function fetchEventRsvps(eventId: string): Promise<EventRsvpRow[]> {
-  const { data, error } = await supabase
-    .from('event_rsvps')
-    .select(
-      `
-      event_id,
-      user_id,
-      status,
-      profiles ( display_name, skill_level, avatar_url )
-    `,
-    )
-    .eq('event_id', eventId)
-    .order('created_at', { ascending: true });
+  const { data, error } = await supabase.rpc('event_attendees', { p_event_id: eventId });
 
   if (error) throw error;
 
-  return (data ?? [])
-    .map((row) => {
-      const profile = row.profiles;
-      if (!profile || Array.isArray(profile)) return null;
-      return {
-        event_id: row.event_id,
-        user_id: row.user_id,
-        status: row.status,
-        display_name: profile.display_name,
-        skill_level: profile.skill_level,
-        avatar_url: profile.avatar_url,
-      };
-    })
-    .filter((row): row is EventRsvpRow => row !== null);
+  return (data ?? []).map((row) => ({
+    event_id: eventId,
+    user_id: row.user_id,
+    status: row.status,
+    display_name: row.display_name,
+    skill_level: row.skill_level,
+    avatar_url: row.avatar_url,
+  }));
 }
 
 function normalizeEventRow(row: Record<string, unknown>): EventRow {
   const courts = row.courts;
-  const groups = row.groups;
 
   return {
     id: row.id as string,
-    group_id: row.group_id as string | null,
     court_id: row.court_id as string,
-    visibility: row.visibility as EventVisibility,
     starts_at: row.starts_at as string,
     max_players: row.max_players as number | null,
     session_type: row.session_type as SessionType,
@@ -343,7 +206,6 @@ function normalizeEventRow(row: Record<string, unknown>): EventRow {
     created_by: row.created_by as string,
     created_at: row.created_at as string,
     courts: courts && !Array.isArray(courts) ? (courts as EventCourt) : null,
-    groups: groups && !Array.isArray(groups) ? (groups as EventGroup) : null,
   };
 }
 
@@ -371,14 +233,6 @@ export function useUpcomingEvents(filter: UpcomingEventsFilter = {}) {
         radiusMi: filter.radiusMi,
       });
     },
-  });
-}
-
-export function useGroupEvents(groupId: string) {
-  return useQuery({
-    queryKey: queryKeys.events.group(groupId),
-    queryFn: () => fetchGroupEvents(groupId),
-    enabled: !!groupId,
   });
 }
 
@@ -484,9 +338,7 @@ export function useCreateEvent() {
       const { data, error } = await supabase
         .from('events')
         .insert({
-          group_id: null,
           court_id: input.courtId,
-          visibility: 'public' satisfies EventVisibility,
           starts_at: input.startsAt.toISOString(),
           session_type: input.sessionType,
           max_players: input.maxPlayers ?? null,
@@ -510,7 +362,7 @@ export function useCreateEvent() {
   });
 }
 
-export function useUpdateEvent(eventId: string, groupId: string | null) {
+export function useUpdateEvent(eventId: string) {
   const queryClient = useQueryClient();
 
   return useMutation({
@@ -540,9 +392,6 @@ export function useUpdateEvent(eventId: string, groupId: string | null) {
     },
     onSuccess: (_data, input) => {
       void queryClient.invalidateQueries({ queryKey: queryKeys.events.detail(eventId) });
-      if (groupId) {
-        void queryClient.invalidateQueries({ queryKey: queryKeys.events.group(groupId) });
-      }
       void queryClient.invalidateQueries({ queryKey: [...queryKeys.events.all, 'upcoming'] });
       void queryClient.invalidateQueries({ queryKey: [...queryKeys.events.all, 'mine'] });
       void queryClient.invalidateQueries({ queryKey: [...queryKeys.events.all, 'hostedUpcoming'] });
@@ -551,7 +400,7 @@ export function useUpdateEvent(eventId: string, groupId: string | null) {
   });
 }
 
-export function useDeleteEvent(eventId: string, groupId: string | null) {
+export function useDeleteEvent(eventId: string) {
   const queryClient = useQueryClient();
 
   return useMutation({
@@ -562,9 +411,6 @@ export function useDeleteEvent(eventId: string, groupId: string | null) {
     onSuccess: () => {
       queryClient.removeQueries({ queryKey: queryKeys.events.detail(eventId) });
       queryClient.removeQueries({ queryKey: queryKeys.events.rsvps(eventId) });
-      if (groupId) {
-        void queryClient.invalidateQueries({ queryKey: queryKeys.events.group(groupId) });
-      }
       void queryClient.invalidateQueries({ queryKey: [...queryKeys.events.all, 'upcoming'] });
       void queryClient.invalidateQueries({ queryKey: [...queryKeys.events.all, 'mine'] });
       void queryClient.invalidateQueries({ queryKey: [...queryKeys.events.all, 'hostedUpcoming'] });
@@ -578,34 +424,18 @@ export function useRsvp(eventId: string) {
   const userId = session?.user.id;
 
   return useMutation({
-    mutationFn: async (status: RsvpStatus) => {
+    // The RPC decides the stored status under a per-session lock, so a request to go
+    // can legitimately come back as 'waitlist' when the session is full.
+    mutationFn: async (status: RsvpStatus): Promise<RsvpStatus> => {
       if (!userId) throw new Error('Not authenticated');
 
-      const { data: existing, error: fetchError } = await supabase
-        .from('event_rsvps')
-        .select('event_id, user_id, status')
-        .eq('event_id', eventId)
-        .eq('user_id', userId)
-        .maybeSingle();
-
-      if (fetchError) throw fetchError;
-
-      if (existing) {
-        const { error } = await supabase
-          .from('event_rsvps')
-          .update({ status })
-          .eq('event_id', eventId)
-          .eq('user_id', userId);
-        if (error) throw error;
-        return;
-      }
-
-      const { error } = await supabase.from('event_rsvps').insert({
-        event_id: eventId,
-        user_id: userId,
-        status,
+      const { data, error } = await supabase.rpc('rsvp_to_event', {
+        p_event_id: eventId,
+        p_status: status,
       });
+
       if (error) throw error;
+      return data;
     },
     onMutate: async (status) => {
       if (!userId || !session?.user) return;

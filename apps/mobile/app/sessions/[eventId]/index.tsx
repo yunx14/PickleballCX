@@ -35,7 +35,7 @@ export default function SessionDetailScreen() {
   const { data: event, isLoading, error } = useEvent(id);
   const { data: rsvps, isLoading: rsvpsLoading } = useEventRsvps(id);
   const rsvpMutation = useRsvp(id);
-  const deleteEvent = useDeleteEvent(id, event?.group_id ?? null);
+  const deleteEvent = useDeleteEvent(id);
   const [confirmingDelete, setConfirmingDelete] = useState(false);
   const [deleteError, setDeleteError] = useState<string>();
 
@@ -44,6 +44,13 @@ export default function SessionDetailScreen() {
   const goingCount = countGoing(rsvps ?? []);
   const breakdown = skillBreakdown(rsvps ?? []);
   const goingAttendees = (rsvps ?? []).filter((row) => row.status === 'going');
+  // The roster RPC orders by RSVP time, so this is the real promotion order.
+  const waitlist = (rsvps ?? []).filter((row) => row.status === 'waitlist');
+  const isFull = event?.max_players != null && goingCount >= event.max_players;
+  const onWaitlist = userRsvp?.status === 'waitlist';
+  const waitlistPosition = onWaitlist
+    ? waitlist.findIndex((row) => row.user_id === session?.user.id) + 1
+    : 0;
 
   if (isLoading || rsvpsLoading) {
     return (
@@ -184,21 +191,47 @@ export default function SessionDetailScreen() {
         ) : (
           <Text style={styles.skillSummary}>No skill data yet for going players</Text>
         )}
+        {isFull ? (
+          <Text style={styles.fullNotice}>
+            {waitlist.length
+              ? `Session full · ${waitlist.length} waiting`
+              : 'Session full · new RSVPs join the waitlist'}
+          </Text>
+        ) : null}
       </View>
+
+      {onWaitlist ? (
+        <View style={styles.waitlistBanner}>
+          <Text style={styles.waitlistBannerTitle}>
+            {waitlistPosition > 0 ? `You are #${waitlistPosition} on the waitlist` : 'You are on the waitlist'}
+          </Text>
+          <Text style={styles.waitlistBannerBody}>
+            We will move you in automatically and notify you if a spot opens up.
+          </Text>
+        </View>
+      ) : null}
 
       <Text style={styles.sectionTitle}>Your RSVP</Text>
       <View style={styles.rsvpRow}>
         {RSVP_STATUSES.filter((status) => status !== 'waitlist').map((status) => {
-          const selected = userRsvp?.status === status;
+          // A going request on a full session is stored as waitlist, so that button
+          // owns the waitlist state rather than showing nothing as selected.
+          const selected =
+            userRsvp?.status === status || (status === 'going' && onWaitlist);
+          const label =
+            status === 'going' && (onWaitlist || (isFull && userRsvp?.status !== 'going'))
+              ? onWaitlist
+                ? 'On waitlist'
+                : 'Join waitlist'
+              : RSVP_STATUS_LABELS[status];
+
           return (
             <Pressable
               key={status}
               disabled={rsvpMutation.isPending}
               onPress={() => rsvpMutation.mutate(status)}
               style={[styles.rsvpButton, selected && styles.rsvpButtonSelected]}>
-              <Text style={[styles.rsvpText, selected && styles.rsvpTextSelected]}>
-                {RSVP_STATUS_LABELS[status]}
-              </Text>
+              <Text style={[styles.rsvpText, selected && styles.rsvpTextSelected]}>{label}</Text>
             </Pressable>
           );
         })}
@@ -212,6 +245,15 @@ export default function SessionDetailScreen() {
           <AttendeeRow key={attendee.user_id} attendee={attendee} />
         ))
       )}
+
+      {waitlist.length ? (
+        <>
+          <Text style={styles.sectionTitle}>Waitlist ({waitlist.length})</Text>
+          {waitlist.map((attendee, index) => (
+            <AttendeeRow key={attendee.user_id} attendee={attendee} position={index + 1} />
+          ))}
+        </>
+      ) : null}
 
       {(rsvps ?? []).some((row) => row.status === 'maybe') ? (
         <>
@@ -229,7 +271,7 @@ export default function SessionDetailScreen() {
   );
 }
 
-function AttendeeRow({ attendee }: { attendee: EventRsvpRow }) {
+function AttendeeRow({ attendee, position }: { attendee: EventRsvpRow; position?: number }) {
   return (
     <View style={styles.attendeeCard}>
       <Avatar uri={attendee.avatar_url} name={attendee.display_name} size={40} />
@@ -237,6 +279,7 @@ function AttendeeRow({ attendee }: { attendee: EventRsvpRow }) {
         <Text style={styles.attendeeName}>{attendee.display_name || 'Player'}</Text>
         <SkillBadge level={attendee.skill_level} />
       </View>
+      {position ? <Text style={styles.attendeePosition}>#{position}</Text> : null}
     </View>
   );
 }
@@ -408,6 +451,36 @@ const styles = StyleSheet.create({
   },
   skillSummary: {
     fontSize: 14,
+    color: brand.muted,
+  },
+  fullNotice: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: brand.text,
+    marginTop: 8,
+  },
+  waitlistBanner: {
+    backgroundColor: brand.surface,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: brand.borderStrong,
+    padding: 16,
+    marginBottom: 20,
+    gap: 4,
+  },
+  waitlistBannerTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: brand.text,
+  },
+  waitlistBannerBody: {
+    fontSize: 14,
+    lineHeight: 20,
+    color: brand.muted,
+  },
+  attendeePosition: {
+    fontSize: 14,
+    fontWeight: '700',
     color: brand.muted,
   },
   sectionTitle: {

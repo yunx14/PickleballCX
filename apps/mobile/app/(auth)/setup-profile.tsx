@@ -102,7 +102,7 @@ export default function SetupProfileScreen() {
         <AuthBrandMark />
         <AuthHeading>Set up your profile</AuthHeading>
         <Subtitle>
-          Your skill level shows on RSVP lists so groups can match games. It is self-reported.
+          Your skill level shows on RSVP lists so players can match games. It is self-reported.
         </Subtitle>
         <FormErrorSummary formError={formError} errors={errors} labels={FIELD_LABELS} />
 
@@ -114,7 +114,7 @@ export default function SetupProfileScreen() {
             <TextField
               value={value}
               onChangeText={onChange}
-              placeholder="How your group knows you"
+              placeholder="How other players know you"
               autoCapitalize="words"
               error={error?.message}
               accessibilityLabel="Display name"

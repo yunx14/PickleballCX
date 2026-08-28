@@ -1,25 +1,5 @@
 import type { Href } from 'expo-router';
 
-export function groupRoute(groupId: string): Href {
-  return `/groups/${groupId}` as Href;
-}
-
-export function groupMembersRoute(groupId: string): Href {
-  return `/groups/${groupId}/members` as Href;
-}
-
-export function groupSessionsRoute(groupId: string): Href {
-  return `/groups/${groupId}/sessions` as Href;
-}
-
-export function groupAnnouncementsRoute(groupId: string): Href {
-  return `/groups/${groupId}/announcements` as Href;
-}
-
-export function newGroupAnnouncementRoute(groupId: string): Href {
-  return `/groups/${groupId}/announcements/new` as Href;
-}
-
 export function newSessionRoute(courtId: string): Href {
   return `/sessions/new?courtId=${courtId}` as Href;
 }
@@ -50,20 +30,3 @@ export const sessionsTabRoute = homeTabRoute;
 
 export const privacyPolicyRoute = '/legal/privacy' as Href;
 export const termsOfServiceRoute = '/legal/terms' as Href;
-
-export const createGroupRoute = '/(tabs)/groups/create' as Href;
-export const joinGroupRoute = '/(tabs)/groups/join' as Href;
-
-export const playerRequestsRoute = '/(tabs)/players/requests' as Href;
-
-export function playerMessageRoute(matchRequestId: string): Href {
-  return `/(tabs)/players/messages/${matchRequestId}` as Href;
-}
-
-export function playerInviteRoute(matchRequestId: string): Href {
-  return `/(tabs)/players/invite/${matchRequestId}` as Href;
-}
-
-export function newSessionWithInviteRoute(matchRequestId: string): Href {
-  return `/sessions/new?inviteMatchRequestId=${matchRequestId}` as Href;
-}

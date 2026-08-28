@@ -17,9 +17,8 @@ export default function EditSessionScreen() {
   const id = eventId!;
   const { session } = useAuth();
   const { data: event, isLoading: eventLoading, error: eventError } = useEvent(id);
-  const groupId = event?.group_id ?? null;
   const { data: court, isLoading: courtLoading } = useCourt(event?.court_id ?? '');
-  const updateEvent = useUpdateEvent(id, groupId);
+  const updateEvent = useUpdateEvent(id);
   const [formError, setFormError] = useState<string>();
 
   const {

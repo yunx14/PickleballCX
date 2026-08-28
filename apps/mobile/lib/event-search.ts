@@ -1,8 +1,12 @@
-import type { EventVisibility, SessionType, SkillLevel } from '@pickleballcx/shared';
+import type { SessionType, SkillLevel } from '@pickleballcx/shared';
 
 import type { EventRow } from '@/hooks/useEvents';
-import { DISCOVERY_RADIUS_OPTIONS_MI, type DiscoveryRadiusMi } from '@/lib/event-filters';
-import { SKILL_FILTER_ANY, type SkillFilter } from '@/lib/player-filters';
+import {
+  DISCOVERY_RADIUS_OPTIONS_MI,
+  SKILL_FILTER_ANY,
+  type DiscoveryRadiusMi,
+  type SkillFilter,
+} from '@/lib/event-filters';
 import type { Coordinates } from '@/lib/geo';
 
 export { DISCOVERY_RADIUS_OPTIONS_MI, SKILL_FILTER_ANY };
@@ -54,9 +58,7 @@ export interface EventSearchFilter {
 /** Flat row shape returned by the search_events RPC. */
 export interface SearchEventsRpcRow {
   id: string;
-  group_id: string | null;
   court_id: string;
-  visibility: EventVisibility;
   starts_at: string;
   max_players: number | null;
   session_type: SessionType;
@@ -84,9 +86,7 @@ export type EventSearchRow = EventRow & {
 export function toEventSearchRow(row: SearchEventsRpcRow): EventSearchRow {
   return {
     id: row.id,
-    group_id: row.group_id,
     court_id: row.court_id,
-    visibility: row.visibility,
     starts_at: row.starts_at,
     max_players: row.max_players,
     session_type: row.session_type,
@@ -104,7 +104,6 @@ export function toEventSearchRow(row: SearchEventsRpcRow): EventSearchRow {
           num_courts: row.court_num_courts ?? 1,
         }
       : null,
-    groups: null,
     going_count: row.going_count,
     distance_km: row.distance_km,
   };
