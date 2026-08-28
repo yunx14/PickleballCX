@@ -1,5 +1,5 @@
 import { router } from 'expo-router';
-import { useMemo } from 'react';
+import { useMemo, type ReactNode } from 'react';
 import {
   ActivityIndicator,
   FlatList,
@@ -14,7 +14,7 @@ import { EmptyState } from '@/components/ui/EmptyState';
 import { PrimaryButton } from '@/components/ui/Screen';
 import { SessionCard } from '@/components/ui/SessionCard';
 import { brand } from '@/constants/brand';
-import { spacing, typography } from '@/constants/theme';
+import { border, spacing, typography } from '@/constants/theme';
 import {
   useMyEventRsvps,
   useMyHostedUpcomingEvents,
@@ -28,7 +28,7 @@ import { formatDistanceMiles } from '@/lib/geo';
 import { mapTabRoute, sessionRoute } from '@/lib/routes';
 import { useAuth } from '@/providers/AuthProvider';
 
-export function SessionsFeed() {
+export function SessionsFeed({ header }: { header?: ReactNode } = {}) {
   const { session, profile } = useAuth();
   const userId = session?.user.id;
   const isAppAdmin = profile?.is_app_admin ?? false;
@@ -86,8 +86,11 @@ export function SessionsFeed() {
 
   if (eventsLoading) {
     return (
-      <View style={styles.centered}>
-        <ActivityIndicator size="large" color={brand.accent} />
+      <View style={styles.listContainer}>
+        {header ? <View style={styles.headerSlot}>{header}</View> : null}
+        <View style={styles.centered}>
+          <ActivityIndicator size="large" color={brand.accent} />
+        </View>
       </View>
     );
   }
@@ -102,6 +105,7 @@ export function SessionsFeed() {
 
       {error ? (
         <View style={styles.padded}>
+          {header}
           <EmptyState title="Could not load sessions" body={error.message} />
         </View>
       ) : (
@@ -121,26 +125,8 @@ export function SessionsFeed() {
           columnWrapperStyle={columns > 1 ? [styles.row, { gap }] : undefined}
           ListHeaderComponent={
             <View>
-              {hostedEvents.length ? (
-                <View style={styles.section}>
-                  <Text style={styles.sectionTitle}>Your upcoming games</Text>
-                  <View style={[styles.grid, { gap }]}>
-                    {hostedEvents.map((item) => (
-                      <View key={item.id} style={{ width: cardWidth }}>
-                        <SessionCard
-                          event={item}
-                          goingCount={goingByEventId[item.id] ?? 0}
-                          onPress={() => router.push(sessionRoute(item.id))}
-                        />
-                      </View>
-                    ))}
-                  </View>
-                </View>
-              ) : null}
-
-              <Text style={[styles.sectionTitle, hostedEvents.length ? styles.findGamesTitle : null]}>
-                Find games
-              </Text>
+              {header}
+              <Text style={styles.sectionTitle}>Find games</Text>
               {!joinable.length ? (
                 <View style={styles.emptyInList}>
                   <EmptyState
@@ -157,6 +143,25 @@ export function SessionsFeed() {
                 </View>
               ) : null}
             </View>
+          }
+          ListFooterComponent={
+            hostedEvents.length ? (
+              <View style={styles.section}>
+                <View style={styles.sectionDivider} />
+                <Text style={styles.sectionTitle}>Your upcoming games</Text>
+                <View style={[styles.grid, { gap }]}>
+                  {hostedEvents.map((item) => (
+                    <View key={item.id} style={{ width: cardWidth }}>
+                      <SessionCard
+                        event={item}
+                        goingCount={goingByEventId[item.id] ?? 0}
+                        onPress={() => router.push(sessionRoute(item.id))}
+                      />
+                    </View>
+                  ))}
+                </View>
+              </View>
+            ) : null
           }
           renderItem={({ item }) => renderSessionCard(item)}
         />
@@ -178,6 +183,9 @@ const styles = StyleSheet.create({
   listContainer: {
     flex: 1,
     backgroundColor: brand.background,
+  },
+  headerSlot: {
+    paddingHorizontal: spacing.xl,
   },
   locationPrompt: {
     paddingHorizontal: spacing.xl,
@@ -203,12 +211,15 @@ const styles = StyleSheet.create({
     paddingBottom: spacing.md,
   },
   sectionTitle: {
-    ...typography.eyebrow,
-    color: brand.accent,
-    marginBottom: spacing.sm,
+    ...typography.titleSm,
+    marginBottom: spacing.md,
   },
-  findGamesTitle: {
-    marginTop: spacing.sm,
+  sectionDivider: {
+    height: border.width,
+    backgroundColor: border.color,
+    marginHorizontal: -spacing.xl,
+    marginTop: spacing.xl,
+    marginBottom: spacing.xl,
   },
   grid: {
     flexDirection: 'row',

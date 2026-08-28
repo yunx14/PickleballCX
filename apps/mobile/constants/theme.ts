@@ -23,6 +23,8 @@ export const radius = {
 /** Session cards wrap into extra columns once this width fits. */
 export const layout = {
   cardMinWidth: 320,
+  /** Below this width the UI is treated as a phone (no card map previews). */
+  compactMaxWidth: 700,
 } as const;
 
 export const border = {

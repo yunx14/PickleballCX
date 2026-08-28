@@ -6,6 +6,7 @@ import { CourtMapPreview } from '@/components/ui/CourtMapPreview';
 import { brand } from '@/constants/brand';
 import { spacing, typography } from '@/constants/theme';
 import type { EventRow } from '@/hooks/useEvents';
+import { useIsCompactViewport } from '@/hooks/useIsCompactViewport';
 import { formatSessionDateTime } from '@/lib/format';
 
 export function SessionCard({
@@ -19,6 +20,7 @@ export function SessionCard({
   distanceLabel?: string;
   onPress: () => void;
 }) {
+  const isCompact = useIsCompactViewport();
   const headcount =
     event.max_players != null && goingCount != null
       ? `${goingCount}/${event.max_players}`
@@ -29,14 +31,20 @@ export function SessionCard({
   return (
     <View style={styles.wrapper}>
       <Card onPress={onPress} style={styles.card}>
-        <CourtMapPreview lat={event.lat} lng={event.lng} />
+        {isCompact ? null : <CourtMapPreview lat={event.lat} lng={event.lng} />}
         <View style={styles.body}>
           <View style={styles.metaRow}>
             <Text style={styles.datetime}>{formatSessionDateTime(event.starts_at)}</Text>
           </View>
-          <Text style={styles.title}>{event.courts?.name ?? 'Session'}</Text>
+          <Text style={styles.title} numberOfLines={1}>
+            {event.courts?.name ?? 'Session'}
+          </Text>
           <Text style={styles.subtitle}>{SESSION_TYPE_LABELS[event.session_type]}</Text>
-          {event.courts?.address ? <Text style={styles.address}>{event.courts.address}</Text> : null}
+          {event.courts?.address ? (
+            <Text style={styles.address} numberOfLines={1}>
+              {event.courts.address}
+            </Text>
+          ) : null}
           <View style={styles.footerRow}>
             {distanceLabel ? <Text style={styles.distance}>{distanceLabel}</Text> : null}
             {headcount ? (
