@@ -5,15 +5,22 @@ import { useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
 import { Pressable, ScrollView, StyleSheet, Switch, Text, TextInput, View } from 'react-native';
 
+import { FormErrorSummary, type FieldLabels } from '@/components/ui/FormErrorSummary';
 import {
   ErrorText,
   FieldLabel,
   PrimaryButton,
   TextField,
+  invalidInputStyle,
 } from '@/components/ui/Screen';
 import { brand } from '@/constants/brand';
 import { useCreateGroupAnnouncement } from '@/hooks/useGroupAnnouncements';
 import { groupAnnouncementsRoute } from '@/lib/routes';
+
+const FIELD_LABELS: FieldLabels = {
+  title: 'Title',
+  body: 'Message',
+};
 
 export default function NewGroupAnnouncementScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -24,7 +31,7 @@ export default function NewGroupAnnouncementScreen() {
   const {
     control,
     handleSubmit,
-    formState: { isSubmitting },
+    formState: { isSubmitting, errors },
   } = useForm<CreateAnnouncementInput>({
     resolver: zodResolver(createAnnouncementSchema),
     defaultValues: { title: '', body: '', pinned: false },
@@ -43,33 +50,32 @@ export default function NewGroupAnnouncementScreen() {
 
   return (
     <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
-      <ErrorText message={formError} />
+      <FormErrorSummary formError={formError} errors={errors} labels={FIELD_LABELS} />
 
-      <FieldLabel>Title</FieldLabel>
+      <FieldLabel invalid={Boolean(errors.title)}>Title</FieldLabel>
       <Controller
         control={control}
         name="title"
         render={({ field: { onChange, value }, fieldState: { error } }) => (
-          <>
-            <TextField
-              value={value}
-              onChangeText={onChange}
-              placeholder="Court change this week"
-              autoCapitalize="sentences"
-            />
-            <ErrorText message={error?.message} />
-          </>
+          <TextField
+            value={value}
+            onChangeText={onChange}
+            placeholder="Court change this week"
+            autoCapitalize="sentences"
+            error={error?.message}
+            accessibilityLabel="Title"
+          />
         )}
       />
 
-      <FieldLabel>Message</FieldLabel>
+      <FieldLabel invalid={Boolean(errors.body)}>Message</FieldLabel>
       <Controller
         control={control}
         name="body"
         render={({ field: { onChange, value }, fieldState: { error } }) => (
           <>
             <TextInput
-              style={styles.bodyInput}
+              style={[styles.bodyInput, Boolean(error) && invalidInputStyle]}
               value={value}
               onChangeText={onChange}
               placeholder="Share details with your group…"
@@ -77,6 +83,7 @@ export default function NewGroupAnnouncementScreen() {
               multiline
               maxLength={2000}
               textAlignVertical="top"
+              accessibilityLabel="Message"
             />
             <ErrorText message={error?.message} />
           </>

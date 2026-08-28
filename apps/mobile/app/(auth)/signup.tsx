@@ -5,10 +5,10 @@ import { useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
 import { ScrollView, StyleSheet } from 'react-native';
 
+import { FormErrorSummary, type FieldLabels } from '@/components/ui/FormErrorSummary';
 import {
   AuthBrandMark,
   AuthHeading,
-  ErrorText,
   FieldLabel,
   LinkText,
   PrimaryButton,
@@ -19,12 +19,18 @@ import {
 import { brand } from '@/constants/brand';
 import { supabase } from '@/lib/supabase';
 
+const FIELD_LABELS: FieldLabels = {
+  email: 'Email',
+  password: 'Password',
+  confirmPassword: 'Confirm password',
+};
+
 export default function SignUpScreen() {
   const [formError, setFormError] = useState<string>();
   const {
     control,
     handleSubmit,
-    formState: { isSubmitting },
+    formState: { isSubmitting, errors },
   } = useForm<SignUpInput>({
     resolver: zodResolver(signUpSchema),
     defaultValues: { email: '', password: '', confirmPassword: '' },
@@ -68,56 +74,53 @@ export default function SignUpScreen() {
         <AuthBrandMark />
         <AuthHeading>Create account</AuthHeading>
         <Subtitle>Find nearby sessions, RSVP, and see courts on the map.</Subtitle>
-        <ErrorText message={formError} />
+        <FormErrorSummary formError={formError} errors={errors} labels={FIELD_LABELS} />
 
-        <FieldLabel>Email</FieldLabel>
+        <FieldLabel invalid={Boolean(errors.email)}>Email</FieldLabel>
         <Controller
           control={control}
           name="email"
           render={({ field: { onChange, value }, fieldState: { error } }) => (
-            <>
-              <TextField
-                value={value}
-                onChangeText={onChange}
-                placeholder="you@example.com"
-                keyboardType="email-address"
-              />
-              <ErrorText message={error?.message} />
-            </>
+            <TextField
+              value={value}
+              onChangeText={onChange}
+              placeholder="you@example.com"
+              keyboardType="email-address"
+              error={error?.message}
+              accessibilityLabel="Email"
+            />
           )}
         />
 
-        <FieldLabel>Password</FieldLabel>
+        <FieldLabel invalid={Boolean(errors.password)}>Password</FieldLabel>
         <Controller
           control={control}
           name="password"
           render={({ field: { onChange, value }, fieldState: { error } }) => (
-            <>
-              <TextField
-                value={value}
-                onChangeText={onChange}
-                placeholder="At least 8 characters"
-                secureTextEntry
-              />
-              <ErrorText message={error?.message} />
-            </>
+            <TextField
+              value={value}
+              onChangeText={onChange}
+              placeholder="At least 8 characters"
+              secureTextEntry
+              error={error?.message}
+              accessibilityLabel="Password"
+            />
           )}
         />
 
-        <FieldLabel>Confirm password</FieldLabel>
+        <FieldLabel invalid={Boolean(errors.confirmPassword)}>Confirm password</FieldLabel>
         <Controller
           control={control}
           name="confirmPassword"
           render={({ field: { onChange, value }, fieldState: { error } }) => (
-            <>
-              <TextField
-                value={value}
-                onChangeText={onChange}
-                placeholder="Repeat password"
-                secureTextEntry
-              />
-              <ErrorText message={error?.message} />
-            </>
+            <TextField
+              value={value}
+              onChangeText={onChange}
+              placeholder="Repeat password"
+              secureTextEntry
+              error={error?.message}
+              accessibilityLabel="Confirm password"
+            />
           )}
         />
 

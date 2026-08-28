@@ -11,6 +11,7 @@ import { useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
 import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 
+import { FormErrorSummary, type FieldLabels } from '@/components/ui/FormErrorSummary';
 import {
   ErrorText,
   FieldLabel,
@@ -19,11 +20,20 @@ import {
   Subtitle,
   TextField,
   Title,
+  invalidInputStyle,
 } from '@/components/ui/Screen';
 import { brand } from '@/constants/brand';
 import { useCreateCourt } from '@/hooks/useCourts';
 import { courtRoute } from '@/lib/routes';
 import { useAuth } from '@/providers/AuthProvider';
+
+const FIELD_LABELS: FieldLabels = {
+  name: 'Court or venue name',
+  address: 'Address',
+  courtType: 'Court type',
+  numCourts: 'Number of courts',
+  notes: 'Notes',
+};
 
 export default function NewCourtScreen() {
   const { profile } = useAuth();
@@ -63,7 +73,8 @@ export default function NewCourtScreen() {
       }
     },
     () => {
-      setFormError('Please fill in all required fields.');
+      // Field-level messages are listed by the summary, so drop any stale server error.
+      setFormError(undefined);
     },
   );
 
@@ -84,88 +95,87 @@ export default function NewCourtScreen() {
         <Subtitle>
           Add a venue to the global catalog. Map coordinates will be added when map integration ships.
         </Subtitle>
-        <ErrorText message={formError} />
-        <ErrorText message={errors.courtType?.message ?? errors.numCourts?.message} />
+        <FormErrorSummary formError={formError} errors={errors} labels={FIELD_LABELS} />
 
-        <FieldLabel>Court or venue name</FieldLabel>
+        <FieldLabel invalid={Boolean(errors.name)}>Court or venue name</FieldLabel>
         <Controller
           control={control}
           name="name"
           render={({ field: { onChange, value }, fieldState: { error } }) => (
-            <>
-              <TextField
-                value={value}
-                onChangeText={onChange}
-                placeholder="Riverside Park courts 3–4"
-                autoCapitalize="words"
-              />
-              <ErrorText message={error?.message} />
-            </>
+            <TextField
+              value={value}
+              onChangeText={onChange}
+              placeholder="Riverside Park courts 3–4"
+              autoCapitalize="words"
+              error={error?.message}
+              accessibilityLabel="Court or venue name"
+            />
           )}
         />
 
-        <FieldLabel>Address</FieldLabel>
+        <FieldLabel invalid={Boolean(errors.address)}>Address</FieldLabel>
         <Controller
           control={control}
           name="address"
           render={({ field: { onChange, value }, fieldState: { error } }) => (
-            <>
-              <TextField
-                value={value}
-                onChangeText={onChange}
-                placeholder="123 Main St, Your City"
-                autoCapitalize="words"
-              />
-              <ErrorText message={error?.message} />
-            </>
+            <TextField
+              value={value}
+              onChangeText={onChange}
+              placeholder="123 Main St, Your City"
+              autoCapitalize="words"
+              error={error?.message}
+              accessibilityLabel="Address"
+            />
           )}
         />
 
-        <FieldLabel>Court type</FieldLabel>
+        <FieldLabel invalid={Boolean(errors.courtType)}>Court type</FieldLabel>
         <Controller
           control={control}
           name="courtType"
           render={({ field: { onChange, value }, fieldState: { error } }) => (
             <>
-              <CourtTypePicker value={value} onChange={onChange} />
+              <CourtTypePicker value={value} onChange={onChange} invalid={Boolean(error)} />
               <ErrorText message={error?.message} />
             </>
           )}
         />
 
-        <FieldLabel>Number of courts</FieldLabel>
+        <FieldLabel invalid={Boolean(errors.numCourts)}>Number of courts</FieldLabel>
         <Controller
           control={control}
           name="numCourts"
           render={({ field: { onChange, value }, fieldState: { error } }) => (
             <>
               <TextInput
-                style={styles.input}
+                style={[styles.input, Boolean(error) && invalidInputStyle]}
                 value={String(value ?? '')}
                 onChangeText={(text) => onChange(text.replace(/[^0-9]/g, ''))}
                 keyboardType="number-pad"
                 placeholder="4"
                 placeholderTextColor={brand.muted}
+                accessibilityLabel="Number of courts"
               />
               <ErrorText message={error?.message} />
             </>
           )}
         />
 
-        <FieldLabel>Notes (optional)</FieldLabel>
+        <FieldLabel invalid={Boolean(errors.notes)}>Notes (optional)</FieldLabel>
         <Controller
           control={control}
           name="notes"
           render={({ field: { onChange, value }, fieldState: { error } }) => (
             <>
               <TextInput
-                style={[styles.input, styles.notesInput]}
+                style={[styles.input, styles.notesInput, Boolean(error) && invalidInputStyle]}
                 value={value ?? ''}
                 onChangeText={onChange}
                 placeholder="Gate code, which courts to use, lights off at 9pm…"
                 placeholderTextColor={brand.muted}
                 multiline
                 textAlignVertical="top"
+                accessibilityLabel="Notes"
               />
               <ErrorText message={error?.message} />
             </>
@@ -185,9 +195,11 @@ export default function NewCourtScreen() {
 function CourtTypePicker({
   value,
   onChange,
+  invalid,
 }: {
   value?: CourtType;
   onChange: (value: CourtType) => void;
+  invalid?: boolean;
 }) {
   return (
     <>
@@ -197,7 +209,11 @@ function CourtTypePicker({
           <Pressable
             key={type}
             onPress={() => onChange(type)}
-            style={[styles.option, selected && styles.optionSelected]}>
+            style={[
+              styles.option,
+              invalid && !selected && invalidInputStyle,
+              selected && styles.optionSelected,
+            ]}>
             <Text style={[styles.optionText, selected && styles.optionTextSelected]}>
               {COURT_TYPE_LABELS[type]}
             </Text>

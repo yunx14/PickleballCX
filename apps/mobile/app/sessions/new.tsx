@@ -65,7 +65,8 @@ export default function NewSessionScreen() {
       }
     },
     () => {
-      setFormError('Please fill in all required fields.');
+      // Field-level messages are listed by the summary, so drop any stale server error.
+      setFormError(undefined);
     },
   );
 

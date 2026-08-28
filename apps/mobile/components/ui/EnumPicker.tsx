@@ -8,11 +8,13 @@ export function EnumPicker<T extends string>({
   labels,
   value,
   onChange,
+  invalid,
 }: {
   options: readonly T[];
   labels: Record<T, string>;
   value?: T;
   onChange: (value: T) => void;
+  invalid?: boolean;
 }) {
   return (
     <>
@@ -22,7 +24,11 @@ export function EnumPicker<T extends string>({
           <Pressable
             key={option}
             onPress={() => onChange(option)}
-            style={[styles.option, selected && styles.optionSelected]}>
+            style={[
+              styles.option,
+              invalid && !selected && styles.optionInvalid,
+              selected && styles.optionSelected,
+            ]}>
             <Text style={[styles.optionText, selected && styles.optionTextSelected]}>
               {labels[option]}
             </Text>
@@ -42,6 +48,9 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     paddingHorizontal: spacing.lg,
     marginBottom: spacing.sm,
+  },
+  optionInvalid: {
+    borderColor: brand.danger,
   },
   optionSelected: {
     borderColor: brand.accent,

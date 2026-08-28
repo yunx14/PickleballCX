@@ -71,9 +71,21 @@ export function ErrorText({ message }: { message?: string }) {
   return <Text style={styles.error}>{message}</Text>;
 }
 
-export function FieldLabel({ children }: { children: React.ReactNode }) {
-  return <Text style={styles.label}>{children}</Text>;
+export function FieldLabel({
+  children,
+  invalid,
+}: {
+  children: React.ReactNode;
+  invalid?: boolean;
+}) {
+  return <Text style={[styles.label, invalid && styles.labelInvalid]}>{children}</Text>;
 }
+
+/** Red border treatment for inputs that declare their own base style. */
+export const invalidInputStyle = {
+  borderColor: brand.danger,
+  borderWidth: border.width,
+} as const;
 
 export function TextField({
   value,
@@ -82,25 +94,47 @@ export function TextField({
   secureTextEntry,
   autoCapitalize = 'none',
   keyboardType = 'default',
+  error,
+  multiline,
+  numberOfLines,
+  accessibilityLabel,
 }: {
   value: string;
   onChangeText: (value: string) => void;
   placeholder?: string;
   secureTextEntry?: boolean;
   autoCapitalize?: 'none' | 'sentences' | 'words' | 'characters';
-  keyboardType?: 'default' | 'email-address';
+  keyboardType?: 'default' | 'email-address' | 'number-pad';
+  error?: string;
+  multiline?: boolean;
+  numberOfLines?: number;
+  accessibilityLabel?: string;
 }) {
+  const invalid = Boolean(error);
+
   return (
-    <TextInput
-      style={styles.input}
-      value={value}
-      onChangeText={onChangeText}
-      placeholder={placeholder}
-      placeholderTextColor={brand.muted}
-      secureTextEntry={secureTextEntry}
-      autoCapitalize={autoCapitalize}
-      keyboardType={keyboardType}
-    />
+    <View>
+      <TextInput
+        style={[
+          styles.input,
+          multiline && styles.inputMultiline,
+          invalid && styles.inputInvalid,
+          invalid && styles.inputWithError,
+        ]}
+        value={value}
+        onChangeText={onChangeText}
+        placeholder={placeholder}
+        placeholderTextColor={brand.muted}
+        secureTextEntry={secureTextEntry}
+        autoCapitalize={autoCapitalize}
+        keyboardType={keyboardType}
+        multiline={multiline}
+        numberOfLines={numberOfLines}
+        accessibilityLabel={accessibilityLabel}
+        aria-invalid={invalid}
+      />
+      <ErrorText message={error} />
+    </View>
   );
 }
 
@@ -154,6 +188,9 @@ const styles = StyleSheet.create({
     ...typography.label,
     marginBottom: spacing.sm,
   },
+  labelInvalid: {
+    color: brand.danger,
+  },
   input: {
     backgroundColor: brand.surface,
     borderWidth: border.width,
@@ -164,6 +201,18 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: brand.text,
     marginBottom: spacing.lg,
+  },
+  inputMultiline: {
+    minHeight: 96,
+    paddingTop: spacing.md,
+    textAlignVertical: 'top',
+  },
+  inputInvalid: {
+    borderColor: brand.danger,
+  },
+  /** The inline message supplies the gap, so the input drops its own. */
+  inputWithError: {
+    marginBottom: spacing.sm,
   },
   primaryButton: {
     backgroundColor: brand.accent,

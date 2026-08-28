@@ -20,16 +20,28 @@ import {
   View,
 } from 'react-native';
 
+import { FormErrorSummary, type FieldLabels } from '@/components/ui/FormErrorSummary';
 import {
   ErrorText,
   FieldLabel,
   PrimaryButton,
   Subtitle,
   Title,
+  invalidInputStyle,
 } from '@/components/ui/Screen';
 import { brand } from '@/constants/brand';
 import type { Court } from '@/hooks/useCourts';
 import { formatSessionDateTime } from '@/lib/format';
+
+const FIELD_LABELS: FieldLabels = {
+  courtId: 'Court',
+  startsAt: 'Date & time',
+  sessionType: 'Session type',
+  maxPlayers: 'Max players',
+  skillMin: 'Minimum skill',
+  skillMax: 'Maximum skill',
+  description: 'Description',
+};
 
 function mergeDatePart(current: Date, picked: Date): Date {
   const merged = new Date(current);
@@ -70,26 +82,26 @@ export function SessionForm({
     <>
       <Title>{title}</Title>
       <Subtitle>{subtitle}</Subtitle>
-      <ErrorText message={formError} />
-      <ErrorText message={errors.courtId?.message ?? errors.sessionType?.message} />
+      <FormErrorSummary formError={formError} errors={errors} labels={FIELD_LABELS} />
 
-      <FieldLabel>Court</FieldLabel>
-      <View style={styles.lockedCourt}>
+      <FieldLabel invalid={Boolean(errors.courtId)}>Court</FieldLabel>
+      <View style={[styles.lockedCourt, Boolean(errors.courtId) && invalidInputStyle]}>
         <Text style={styles.lockedCourtName}>{lockedCourt.name}</Text>
         <Text style={styles.lockedCourtAddress}>{lockedCourt.address}</Text>
       </View>
+      <ErrorText message={errors.courtId?.message} />
 
-      <FieldLabel>Date & time</FieldLabel>
+      <FieldLabel invalid={Boolean(errors.startsAt)}>Date & time</FieldLabel>
       <Controller
         control={control}
         name="startsAt"
-        render={({ field: { value, onChange } }) => (
-          <DateTimeDropdown value={value} onChange={onChange} />
+        render={({ field: { value, onChange }, fieldState: { error } }) => (
+          <DateTimeDropdown value={value} onChange={onChange} invalid={Boolean(error)} />
         )}
       />
       <ErrorText message={errors.startsAt?.message} />
 
-      <FieldLabel>Session type</FieldLabel>
+      <FieldLabel invalid={Boolean(errors.sessionType)}>Session type</FieldLabel>
       <Controller
         control={control}
         name="sessionType"
@@ -100,20 +112,21 @@ export function SessionForm({
               labels={SESSION_TYPE_LABELS}
               value={value}
               onChange={onChange}
+              invalid={Boolean(error)}
             />
             <ErrorText message={error?.message} />
           </>
         )}
       />
 
-      <FieldLabel>Max players (optional)</FieldLabel>
+      <FieldLabel invalid={Boolean(errors.maxPlayers)}>Max players (optional)</FieldLabel>
       <Controller
         control={control}
         name="maxPlayers"
         render={({ field: { onChange, value }, fieldState: { error } }) => (
           <>
             <TextInput
-              style={styles.input}
+              style={[styles.input, Boolean(error) && invalidInputStyle]}
               value={value === undefined ? '' : String(value)}
               onChangeText={(text) => {
                 const trimmed = text.trim();
@@ -122,6 +135,7 @@ export function SessionForm({
               keyboardType="number-pad"
               placeholder="e.g. 12"
               placeholderTextColor={brand.muted}
+              accessibilityLabel="Max players"
             />
             <ErrorText message={error?.message} />
           </>
@@ -132,32 +146,51 @@ export function SessionForm({
       <Controller
         control={control}
         name="skillMin"
-        render={({ field: { onChange, value } }) => (
-          <SkillPicker label="Minimum skill" value={value} onChange={onChange} allowClear />
+        render={({ field: { onChange, value }, fieldState: { error } }) => (
+          <>
+            <SkillPicker
+              label="Minimum skill"
+              value={value}
+              onChange={onChange}
+              allowClear
+              invalid={Boolean(error)}
+            />
+            <ErrorText message={error?.message} />
+          </>
         )}
       />
       <Controller
         control={control}
         name="skillMax"
-        render={({ field: { onChange, value } }) => (
-          <SkillPicker label="Maximum skill" value={value} onChange={onChange} allowClear />
+        render={({ field: { onChange, value }, fieldState: { error } }) => (
+          <>
+            <SkillPicker
+              label="Maximum skill"
+              value={value}
+              onChange={onChange}
+              allowClear
+              invalid={Boolean(error)}
+            />
+            <ErrorText message={error?.message} />
+          </>
         )}
       />
 
-      <FieldLabel>Description (optional)</FieldLabel>
+      <FieldLabel invalid={Boolean(errors.description)}>Description (optional)</FieldLabel>
       <Controller
         control={control}
         name="description"
         render={({ field: { onChange, value }, fieldState: { error } }) => (
           <>
             <TextInput
-              style={[styles.input, styles.notesInput]}
+              style={[styles.input, styles.notesInput, Boolean(error) && invalidInputStyle]}
               value={value ?? ''}
               onChangeText={onChange}
               placeholder="Bring extra balls, courts 3–4 in the back…"
               placeholderTextColor={brand.muted}
               multiline
               textAlignVertical="top"
+              accessibilityLabel="Description"
             />
             <ErrorText message={error?.message} />
           </>
@@ -181,9 +214,11 @@ function toDatetimeLocalValue(date: Date): string {
 function DateTimeDropdown({
   value,
   onChange,
+  invalid,
 }: {
   value: Date;
   onChange: (date: Date) => void;
+  invalid?: boolean;
 }) {
   const [open, setOpen] = useState(false);
   const [draft, setDraft] = useState(value);
@@ -202,7 +237,11 @@ function DateTimeDropdown({
       <Pressable
         accessibilityRole="button"
         onPress={() => setOpen(true)}
-        style={({ pressed }) => [styles.dateButton, pressed && styles.dropdownTriggerPressed]}>
+        style={({ pressed }) => [
+          styles.dateButton,
+          invalid && invalidInputStyle,
+          pressed && styles.dropdownTriggerPressed,
+        ]}>
         <Text style={styles.dateButtonText}>{formatSessionDateTime(value.toISOString())}</Text>
         <Text style={styles.dateButtonHint}>Tap to change date and time</Text>
       </Pressable>
@@ -274,11 +313,13 @@ function OptionPicker<T extends string>({
   labels,
   value,
   onChange,
+  invalid,
 }: {
   options: readonly T[];
   labels: Record<T, string>;
   value?: T;
   onChange: (value: T) => void;
+  invalid?: boolean;
 }) {
   return (
     <>
@@ -288,7 +329,11 @@ function OptionPicker<T extends string>({
           <Pressable
             key={option}
             onPress={() => onChange(option)}
-            style={[styles.option, selected && styles.optionSelected]}>
+            style={[
+              styles.option,
+              invalid && !selected && invalidInputStyle,
+              selected && styles.optionSelected,
+            ]}>
             <Text style={[styles.optionText, selected && styles.optionTextSelected]}>
               {labels[option]}
             </Text>
@@ -304,15 +349,17 @@ function SkillPicker({
   value,
   onChange,
   allowClear,
+  invalid,
 }: {
   label: string;
   value?: SkillLevel;
   onChange: (value?: SkillLevel) => void;
   allowClear?: boolean;
+  invalid?: boolean;
 }) {
   return (
     <View style={styles.skillBlock}>
-      <Text style={styles.skillLabel}>{label}</Text>
+      <Text style={[styles.skillLabel, invalid && styles.skillLabelInvalid]}>{label}</Text>
       {allowClear && !value ? <Text style={styles.skillHint}>Any</Text> : null}
       {SKILL_LEVELS.map((level) => {
         const selected = value === level;
@@ -320,7 +367,11 @@ function SkillPicker({
           <Pressable
             key={level}
             onPress={() => onChange(selected && allowClear ? undefined : level)}
-            style={[styles.option, selected && styles.optionSelected]}>
+            style={[
+              styles.option,
+              invalid && !selected && invalidInputStyle,
+              selected && styles.optionSelected,
+            ]}>
             <Text style={[styles.optionText, selected && styles.optionTextSelected]}>
               {SKILL_LEVEL_LABELS[level]}
             </Text>
@@ -503,6 +554,9 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: brand.text,
     marginBottom: 8,
+  },
+  skillLabelInvalid: {
+    color: brand.danger,
   },
   skillHint: {
     fontSize: 14,

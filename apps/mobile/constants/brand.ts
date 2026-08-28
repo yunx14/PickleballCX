@@ -10,6 +10,9 @@ export const brand = {
   border: '#333333',
   borderStrong: '#444444',
   danger: '#FF4757',
+  /** Tinted fill behind error banners, mirroring how `accentSurface` backs accent states. */
+  dangerSurface: '#2A0F12',
+  dangerBorder: '#7A2530',
   warning: '#FF8C00',
   black: '#000000',
   white: '#FFFFFF',

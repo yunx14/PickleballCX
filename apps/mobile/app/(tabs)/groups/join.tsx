@@ -5,9 +5,9 @@ import { useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 
+import { FormErrorSummary, type FieldLabels } from '@/components/ui/FormErrorSummary';
 import {
   AuthHeading,
-  ErrorText,
   FieldLabel,
   PrimaryButton,
   ScreenContainer,
@@ -18,6 +18,10 @@ import { brand } from '@/constants/brand';
 import { useGroupPreview, useJoinGroup } from '@/hooks/useGroups';
 import { groupRoute } from '@/lib/routes';
 
+const FIELD_LABELS: FieldLabels = {
+  inviteCode: 'Invite code',
+};
+
 export default function JoinGroupScreen() {
   const [formError, setFormError] = useState<string>();
   const joinGroup = useJoinGroup();
@@ -25,7 +29,7 @@ export default function JoinGroupScreen() {
     control,
     handleSubmit,
     watch,
-    formState: { isSubmitting },
+    formState: { isSubmitting, errors },
   } = useForm<JoinGroupInput>({
     resolver: zodResolver(joinGroupSchema),
     defaultValues: { inviteCode: '' },
@@ -53,22 +57,21 @@ export default function JoinGroupScreen() {
       <ScreenContainer>
         <AuthHeading>Join a group</AuthHeading>
         <Subtitle>Enter the invite code from your group admin to join their pickleball crew.</Subtitle>
-        <ErrorText message={formError} />
+        <FormErrorSummary formError={formError} errors={errors} labels={FIELD_LABELS} />
 
-        <FieldLabel>Invite code</FieldLabel>
+        <FieldLabel invalid={Boolean(errors.inviteCode)}>Invite code</FieldLabel>
         <Controller
           control={control}
           name="inviteCode"
           render={({ field: { onChange, value }, fieldState: { error } }) => (
-            <>
-              <TextField
-                value={value}
-                onChangeText={(text) => onChange(text.toUpperCase())}
-                placeholder="ABCD1234"
-                autoCapitalize="characters"
-              />
-              <ErrorText message={error?.message} />
-            </>
+            <TextField
+              value={value}
+              onChangeText={(text) => onChange(text.toUpperCase())}
+              placeholder="ABCD1234"
+              autoCapitalize="characters"
+              error={error?.message}
+              accessibilityLabel="Invite code"
+            />
           )}
         />
 

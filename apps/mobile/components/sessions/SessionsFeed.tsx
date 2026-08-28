@@ -11,7 +11,6 @@ import {
 } from 'react-native';
 
 import { EmptyState } from '@/components/ui/EmptyState';
-import { PrimaryButton } from '@/components/ui/Screen';
 import { SessionCard } from '@/components/ui/SessionCard';
 import { brand } from '@/constants/brand';
 import { border, spacing, typography } from '@/constants/theme';
@@ -166,9 +165,6 @@ export function SessionsFeed({ header }: { header?: ReactNode } = {}) {
           renderItem={({ item }) => renderSessionCard(item)}
         />
       )}
-      <View style={styles.footer}>
-        <PrimaryButton label="Find a court" onPress={() => router.push(mapTabRoute)} />
-      </View>
     </View>
   );
 }
@@ -233,13 +229,6 @@ const styles = StyleSheet.create({
   },
   cell: {
     flex: 1,
-  },
-  footer: {
-    padding: spacing.xl,
-    paddingTop: spacing.md,
-    borderTopWidth: 1,
-    borderTopColor: brand.border,
-    backgroundColor: brand.surfaceElevated,
   },
   secondaryLink: {
     alignItems: 'center',

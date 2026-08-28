@@ -6,21 +6,24 @@ export const createCourtSchema = z.object({
   name: z
     .string()
     .trim()
+    .min(1, 'Court name is required')
     .min(2, 'Court name must be at least 2 characters')
     .max(100, 'Court name must be 100 characters or less'),
   address: z
     .string()
     .trim()
-    .min(5, 'Enter a full address')
+    .min(1, 'Address is required')
+    .min(5, 'Enter the full street address so players can find it')
     .max(200, 'Address must be 200 characters or less'),
   courtType: z.enum(COURT_TYPES, {
     required_error: 'Select indoor, outdoor, or both',
+    invalid_type_error: 'Select indoor, outdoor, or both',
   }),
   numCourts: z.coerce
-    .number()
-    .int('Must be a whole number')
-    .min(1, 'At least 1 court')
-    .max(50, 'Maximum 50 courts'),
+    .number({ invalid_type_error: 'Enter the number of courts as a number' })
+    .int('Enter a whole number of courts')
+    .min(1, 'There must be at least 1 court')
+    .max(50, 'Enter 50 courts or fewer'),
   notes: z.string().trim().max(500, 'Notes must be 500 characters or less').optional(),
 });
 

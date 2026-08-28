@@ -7,9 +7,11 @@ import { border, radius, spacing } from '@/constants/theme';
 export function SkillPicker({
   value,
   onChange,
+  invalid,
 }: {
   value?: SkillLevel;
   onChange: (value: SkillLevel) => void;
+  invalid?: boolean;
 }) {
   return (
     <>
@@ -19,7 +21,11 @@ export function SkillPicker({
           <Pressable
             key={level}
             onPress={() => onChange(level)}
-            style={[styles.option, selected && styles.optionSelected]}>
+            style={[
+              styles.option,
+              invalid && !selected && styles.optionInvalid,
+              selected && styles.optionSelected,
+            ]}>
             <Text style={[styles.optionText, selected && styles.optionTextSelected]}>
               {SKILL_LEVEL_LABELS[level]}
             </Text>
@@ -39,6 +45,9 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     paddingHorizontal: spacing.lg,
     marginBottom: spacing.sm,
+  },
+  optionInvalid: {
+    borderColor: brand.danger,
   },
   optionSelected: {
     borderColor: brand.accent,

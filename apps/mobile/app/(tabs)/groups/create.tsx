@@ -5,9 +5,9 @@ import { useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
 import { ScrollView, StyleSheet } from 'react-native';
 
+import { FormErrorSummary, type FieldLabels } from '@/components/ui/FormErrorSummary';
 import {
   AuthHeading,
-  ErrorText,
   FieldLabel,
   PrimaryButton,
   ScreenContainer,
@@ -18,13 +18,17 @@ import { brand } from '@/constants/brand';
 import { useCreateGroup } from '@/hooks/useGroups';
 import { groupRoute } from '@/lib/routes';
 
+const FIELD_LABELS: FieldLabels = {
+  name: 'Group name',
+};
+
 export default function CreateGroupScreen() {
   const [formError, setFormError] = useState<string>();
   const createGroup = useCreateGroup();
   const {
     control,
     handleSubmit,
-    formState: { isSubmitting },
+    formState: { isSubmitting, errors },
   } = useForm<CreateGroupInput>({
     resolver: zodResolver(createGroupSchema),
     defaultValues: { name: '' },
@@ -55,22 +59,21 @@ export default function CreateGroupScreen() {
           Start a private crew for your regular pickleball sessions. You will get a shareable invite
           code right away.
         </Subtitle>
-        <ErrorText message={formError} />
+        <FormErrorSummary formError={formError} errors={errors} labels={FIELD_LABELS} />
 
-        <FieldLabel>Group name</FieldLabel>
+        <FieldLabel invalid={Boolean(errors.name)}>Group name</FieldLabel>
         <Controller
           control={control}
           name="name"
           render={({ field: { onChange, value }, fieldState: { error } }) => (
-            <>
-              <TextField
-                value={value}
-                onChangeText={onChange}
-                placeholder="Tuesday Night Dinkers"
-                autoCapitalize="words"
-              />
-              <ErrorText message={error?.message} />
-            </>
+            <TextField
+              value={value}
+              onChangeText={onChange}
+              placeholder="Tuesday Night Dinkers"
+              autoCapitalize="words"
+              error={error?.message}
+              accessibilityLabel="Group name"
+            />
           )}
         />
 

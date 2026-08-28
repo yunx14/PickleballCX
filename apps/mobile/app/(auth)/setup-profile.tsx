@@ -8,6 +8,7 @@ import { useEffect, useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
+import { FormErrorSummary, type FieldLabels } from '@/components/ui/FormErrorSummary';
 import {
   AuthBrandMark,
   AuthHeading,
@@ -23,6 +24,11 @@ import { brand } from '@/constants/brand';
 import { spacing } from '@/constants/theme';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/providers/AuthProvider';
+
+const FIELD_LABELS: FieldLabels = {
+  displayName: 'Display name',
+  skillLevel: 'Pickleball skill',
+};
 
 export default function SetupProfileScreen() {
   const { session, profile, refreshProfile } = useAuth();
@@ -82,7 +88,8 @@ export default function SetupProfileScreen() {
       router.replace('/(tabs)');
     },
     () => {
-      setFormError('Please enter a display name and pick your skill level.');
+      // Field-level messages are listed by the summary, so drop any stale server error.
+      setFormError(undefined);
     },
   );
 
@@ -97,33 +104,33 @@ export default function SetupProfileScreen() {
         <Subtitle>
           Your skill level shows on RSVP lists so groups can match games. It is self-reported.
         </Subtitle>
-        <ErrorText message={formError} />
-        <ErrorText message={errors.displayName?.message ?? errors.skillLevel?.message} />
+        <FormErrorSummary formError={formError} errors={errors} labels={FIELD_LABELS} />
 
-        <FieldLabel>Display name</FieldLabel>
+        <FieldLabel invalid={Boolean(errors.displayName)}>Display name</FieldLabel>
         <Controller
           control={control}
           name="displayName"
           render={({ field: { onChange, value }, fieldState: { error } }) => (
-            <>
-              <TextField
-                value={value}
-                onChangeText={onChange}
-                placeholder="How your group knows you"
-                autoCapitalize="words"
-              />
-              <ErrorText message={error?.message} />
-            </>
+            <TextField
+              value={value}
+              onChangeText={onChange}
+              placeholder="How your group knows you"
+              autoCapitalize="words"
+              error={error?.message}
+              accessibilityLabel="Display name"
+            />
           )}
         />
 
-        <FieldLabel>Pickleball skill (self-reported)</FieldLabel>
+        <FieldLabel invalid={Boolean(errors.skillLevel)}>
+          Pickleball skill (self-reported)
+        </FieldLabel>
         <Controller
           control={control}
           name="skillLevel"
           render={({ field: { onChange, value }, fieldState: { error } }) => (
             <>
-              <SkillPicker value={value} onChange={onChange} />
+              <SkillPicker value={value} onChange={onChange} invalid={Boolean(error)} />
               <ErrorText message={error?.message} />
             </>
           )}

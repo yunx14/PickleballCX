@@ -14,6 +14,7 @@ import { Linking, Pressable, ScrollView, StyleSheet, Switch, Text, View } from '
 
 import { Avatar } from '@/components/ui/Avatar';
 import { Card } from '@/components/ui/Card';
+import { FormErrorSummary, type FieldLabels } from '@/components/ui/FormErrorSummary';
 import {
   ErrorText,
   FieldLabel,
@@ -29,6 +30,14 @@ import { removeProfileAvatar, uploadProfileAvatar } from '@/lib/avatar-upload';
 import { mapTabRoute, privacyPolicyRoute, termsOfServiceRoute } from '@/lib/routes';
 import { saveProfileDiscoveryFields } from '@/lib/profile-save';
 import { useAuth } from '@/providers/AuthProvider';
+
+const FIELD_LABELS: FieldLabels = {
+  displayName: 'Display name',
+  city: 'City',
+  skillLevel: 'Pickleball skill',
+  playFormat: 'Preferred format',
+  rankedPreference: 'Ranked play preference',
+};
 
 export default function ProfileScreen() {
   const { profile, signOut, refreshProfile } = useAuth();
@@ -120,7 +129,9 @@ export default function ProfileScreen() {
       setSaveMessage('Profile saved.');
     },
     () => {
-      setFormError('Please fill in required fields.');
+      // Field-level messages are listed by the summary, so drop any stale save error.
+      setFormError(undefined);
+      setSaveMessage(undefined);
     },
   );
 
@@ -166,89 +177,88 @@ export default function ProfileScreen() {
         )}
       </Card>
 
-      <ErrorText message={formError} />
-      <ErrorText
-        message={
-          errors.displayName?.message ??
-          errors.skillLevel?.message ??
-          errors.city?.message ??
-          errors.playFormat?.message ??
-          errors.rankedPreference?.message
-        }
-      />
+      <FormErrorSummary formError={formError} errors={errors} labels={FIELD_LABELS} />
       {saveMessage ? <Text style={styles.saveMessage}>{saveMessage}</Text> : null}
 
-      <FieldLabel>Display name</FieldLabel>
+      <FieldLabel invalid={Boolean(errors.displayName)}>Display name</FieldLabel>
       <Controller
         control={control}
         name="displayName"
         render={({ field: { onChange, value }, fieldState: { error } }) => (
-          <>
-            <TextField
-              value={value}
-              onChangeText={onChange}
-              placeholder="How your group knows you"
-              autoCapitalize="words"
-            />
-            <ErrorText message={error?.message} />
-          </>
+          <TextField
+            value={value}
+            onChangeText={onChange}
+            placeholder="How your group knows you"
+            autoCapitalize="words"
+            error={error?.message}
+            accessibilityLabel="Display name"
+          />
         )}
       />
 
-      <FieldLabel>City</FieldLabel>
+      <FieldLabel invalid={Boolean(errors.city)}>City</FieldLabel>
       <Controller
         control={control}
         name="city"
         render={({ field: { onChange, value }, fieldState: { error } }) => (
-          <>
-            <TextField
-              value={value ?? ''}
-              onChangeText={onChange}
-              placeholder="Mobile, AL"
-              autoCapitalize="words"
-            />
-            <ErrorText message={error?.message} />
-          </>
+          <TextField
+            value={value ?? ''}
+            onChangeText={onChange}
+            placeholder="Mobile, AL"
+            autoCapitalize="words"
+            error={error?.message}
+            accessibilityLabel="City"
+          />
         )}
       />
 
-      <FieldLabel>Pickleball skill (self-reported)</FieldLabel>
+      <FieldLabel invalid={Boolean(errors.skillLevel)}>
+        Pickleball skill (self-reported)
+      </FieldLabel>
       <Controller
         control={control}
         name="skillLevel"
         render={({ field: { onChange, value }, fieldState: { error } }) => (
           <>
-            <SkillPicker value={value} onChange={onChange} />
+            <SkillPicker value={value} onChange={onChange} invalid={Boolean(error)} />
             <ErrorText message={error?.message} />
           </>
         )}
       />
 
-      <FieldLabel>Preferred format</FieldLabel>
+      <FieldLabel invalid={Boolean(errors.playFormat)}>Preferred format</FieldLabel>
       <Controller
         control={control}
         name="playFormat"
-        render={({ field: { onChange, value } }) => (
-          <EnumPicker
-            options={PLAY_FORMATS}
-            labels={PLAY_FORMAT_LABELS}
-            value={value}
-            onChange={onChange}
-          />
+        render={({ field: { onChange, value }, fieldState: { error } }) => (
+          <>
+            <EnumPicker
+              options={PLAY_FORMATS}
+              labels={PLAY_FORMAT_LABELS}
+              value={value}
+              onChange={onChange}
+              invalid={Boolean(error)}
+            />
+            <ErrorText message={error?.message} />
+          </>
         )}
       />
 
-      <FieldLabel>Ranked play preference</FieldLabel>
+      <FieldLabel invalid={Boolean(errors.rankedPreference)}>Ranked play preference</FieldLabel>
       <Controller
         control={control}
         name="rankedPreference"
-        render={({ field: { onChange, value } }) => (
-          <EnumPicker
-            options={RANKED_PREFERENCES}
-            labels={RANKED_PREFERENCE_LABELS}
-            value={value}
-            onChange={onChange}
-          />
+        render={({ field: { onChange, value }, fieldState: { error } }) => (
+          <>
+            <EnumPicker
+              options={RANKED_PREFERENCES}
+              labels={RANKED_PREFERENCE_LABELS}
+              value={value}
+              onChange={onChange}
+              invalid={Boolean(error)}
+            />
+            <ErrorText message={error?.message} />
+          </>
         )}
       />
 
