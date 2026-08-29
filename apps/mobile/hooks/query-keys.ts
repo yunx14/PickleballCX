@@ -23,6 +23,8 @@ export const queryKeys = {
       [...queryKeys.events.all, 'mine', userId, timeframe] as const,
     hostedUpcoming: (userId?: string) =>
       [...queryKeys.events.all, 'hostedUpcoming', userId] as const,
+    feedback: (eventId: string, userId?: string) =>
+      [...queryKeys.events.all, 'feedback', eventId, userId] as const,
   },
   notifications: {
     all: ['notifications'] as const,

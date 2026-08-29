@@ -1,11 +1,17 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import {
   DEFAULT_SESSION_DURATION_MINUTES,
+  MAX_SESSION_DURATION_MINUTES,
+  MIN_SESSION_DURATION_MINUTES,
+  SESSION_TYPES,
+  SKILL_LEVELS,
   createEventSchema,
   type CreateEventInput,
+  type SessionType,
+  type SkillLevel,
 } from '@pickleballcx/shared';
 import { Redirect, router, useLocalSearchParams } from 'expo-router';
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { ActivityIndicator, ScrollView, StyleSheet, View } from 'react-native';
 
@@ -17,10 +23,57 @@ import { useCreateEvent } from '@/hooks/useEvents';
 import { mapTabRoute, sessionRoute } from '@/lib/routes';
 
 export default function NewSessionScreen() {
-  const { courtId } = useLocalSearchParams<{ courtId?: string }>();
+  const params = useLocalSearchParams<{
+    courtId?: string;
+    startsAt?: string;
+    durationMinutes?: string;
+    sessionType?: string;
+    maxPlayers?: string;
+    skillMin?: string;
+    skillMax?: string;
+  }>();
+  const courtId = params.courtId;
   const { data: court, isLoading: courtLoading, error: courtError } = useCourt(courtId ?? '');
   const createEvent = useCreateEvent();
   const [formError, setFormError] = useState<string>();
+
+  // A rebook arrives with the old session's shape in the URL. Everything is re-validated
+  // here, since a URL is not a trustworthy source of enum values.
+  const prefill = useMemo(() => {
+    const startsAt = params.startsAt ? new Date(params.startsAt) : undefined;
+    const duration = Number(params.durationMinutes);
+    const maxPlayers = Number(params.maxPlayers);
+
+    return {
+      startsAt:
+        startsAt && !Number.isNaN(startsAt.getTime()) && startsAt.getTime() > Date.now()
+          ? startsAt
+          : undefined,
+      durationMinutes:
+        Number.isFinite(duration) &&
+        duration >= MIN_SESSION_DURATION_MINUTES &&
+        duration <= MAX_SESSION_DURATION_MINUTES
+          ? duration
+          : undefined,
+      sessionType: SESSION_TYPES.includes(params.sessionType as SessionType)
+        ? (params.sessionType as SessionType)
+        : undefined,
+      maxPlayers: Number.isFinite(maxPlayers) && maxPlayers > 0 ? maxPlayers : undefined,
+      skillMin: SKILL_LEVELS.includes(params.skillMin as SkillLevel)
+        ? (params.skillMin as SkillLevel)
+        : undefined,
+      skillMax: SKILL_LEVELS.includes(params.skillMax as SkillLevel)
+        ? (params.skillMax as SkillLevel)
+        : undefined,
+    };
+  }, [
+    params.startsAt,
+    params.durationMinutes,
+    params.sessionType,
+    params.maxPlayers,
+    params.skillMin,
+    params.skillMax,
+  ]);
 
   const defaultStart = new Date();
   defaultStart.setMinutes(0, 0, 0);
@@ -35,10 +88,12 @@ export default function NewSessionScreen() {
     resolver: zodResolver(createEventSchema),
     defaultValues: {
       courtId: courtId ?? '',
-      startsAt: defaultStart,
-      durationMinutes: DEFAULT_SESSION_DURATION_MINUTES,
-      sessionType: undefined,
-      maxPlayers: undefined,
+      startsAt: prefill.startsAt ?? defaultStart,
+      durationMinutes: prefill.durationMinutes ?? DEFAULT_SESSION_DURATION_MINUTES,
+      sessionType: prefill.sessionType,
+      maxPlayers: prefill.maxPlayers,
+      skillMin: prefill.skillMin,
+      skillMax: prefill.skillMax,
       description: '',
     },
   });

@@ -31,6 +31,7 @@ export interface EventRow {
   created_at: string;
   cancelled_at: string | null;
   cancellation_reason: string | null;
+  attendance_confirmed_at: string | null;
   courts: EventCourt | null;
 }
 
@@ -51,6 +52,7 @@ const EVENT_SELECT = `
   created_at,
   cancelled_at,
   cancellation_reason,
+  attendance_confirmed_at,
   courts ( name, address, num_courts )
 `;
 
@@ -61,6 +63,8 @@ export interface EventRsvpRow {
   display_name: string;
   skill_level: SkillLevel | null;
   avatar_url: string | null;
+  // Null until the host confirms the roster: unknown, not absent.
+  attended: boolean | null;
 }
 
 async function fetchUpcomingEvents(): Promise<EventRow[]> {
@@ -187,6 +191,7 @@ async function fetchEventRsvps(eventId: string): Promise<EventRsvpRow[]> {
     display_name: row.display_name,
     skill_level: row.skill_level,
     avatar_url: row.avatar_url,
+    attended: row.attended,
   }));
 }
 
@@ -210,6 +215,7 @@ function normalizeEventRow(row: Record<string, unknown>): EventRow {
     created_at: row.created_at as string,
     cancelled_at: (row.cancelled_at as string | null) ?? null,
     cancellation_reason: (row.cancellation_reason as string | null) ?? null,
+    attendance_confirmed_at: (row.attendance_confirmed_at as string | null) ?? null,
     courts: courts && !Array.isArray(courts) ? (courts as EventCourt) : null,
   };
 }
@@ -471,6 +477,74 @@ export function useBroadcastToAttendees(eventId: string) {
   });
 }
 
+export function useConfirmAttendance(eventId: string) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    // Everyone on the roster who is not in this list is recorded as a no-show.
+    mutationFn: async (attendedUserIds: string[]) => {
+      const { data, error } = await supabase.rpc('confirm_attendance', {
+        p_event_id: eventId,
+        p_attended_user_ids: attendedUserIds,
+      });
+
+      if (error) throw error;
+      return data ?? 0;
+    },
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: queryKeys.events.rsvps(eventId) });
+      void queryClient.invalidateQueries({ queryKey: queryKeys.events.detail(eventId) });
+    },
+  });
+}
+
+export interface SessionFeedback {
+  rating: number;
+  court_note: string | null;
+}
+
+export function useMySessionFeedback(eventId: string) {
+  const { session } = useAuth();
+  const userId = session?.user.id;
+
+  return useQuery({
+    queryKey: queryKeys.events.feedback(eventId, userId),
+    queryFn: async (): Promise<SessionFeedback | null> => {
+      const { data, error } = await supabase
+        .from('session_feedback')
+        .select('rating, court_note')
+        .eq('event_id', eventId)
+        .eq('user_id', userId!)
+        .maybeSingle();
+
+      if (error) throw error;
+      return data ?? null;
+    },
+    enabled: !!eventId && !!userId,
+  });
+}
+
+export function useSubmitSessionFeedback(eventId: string) {
+  const queryClient = useQueryClient();
+  const { session } = useAuth();
+  const userId = session?.user.id;
+
+  return useMutation({
+    mutationFn: async (input: { rating: number; courtNote?: string }) => {
+      const { error } = await supabase.rpc('submit_session_feedback', {
+        p_event_id: eventId,
+        p_rating: input.rating,
+        p_court_note: input.courtNote?.trim() || null,
+      });
+
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: queryKeys.events.feedback(eventId, userId) });
+    },
+  });
+}
+
 export function useDeleteEvent(eventId: string) {
   const queryClient = useQueryClient();
 
@@ -525,6 +599,7 @@ export function useRsvp(eventId: string) {
           display_name: displayName,
           skill_level: profile?.skill_level ?? null,
           avatar_url: profile?.avatar_url ?? null,
+          attended: null,
         },
       ];
 

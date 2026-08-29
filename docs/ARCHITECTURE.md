@@ -149,12 +149,24 @@ flowchart LR
 | Session cancelled | Attendees |
 | Starting soon (75–90 min out) | Going + maybe |
 | Host message | Everyone on the roster |
+| Post-session prompt (1 hr after it ends) | Host, plus everyone marked going |
 
 New sessions do not broadcast push to all users (MVP anti-spam). See [`DEPLOY.md`](../DEPLOY.md) for setup.
 
 ### Scheduled jobs
 
-`pg_cron` runs `send-session-reminders` every 15 minutes, which calls `private.send_session_reminders()`. That function reminds each session starting within 90 minutes exactly once, stamping `events.reminder_sent_at` so a later run skips it. Moving a session's start time clears the stamp so the reminder fires again for the new time. Inspect runs with:
+Two `pg_cron` jobs drive the timeline around a session:
+
+| Job | Schedule | Function |
+|-----|----------|----------|
+| `send-session-reminders` | every 15 minutes | `private.send_session_reminders()` |
+| `send-post-session-prompts` | 5, 20, 35 and 50 past the hour | `private.send_post_session_prompts()` |
+
+The reminder job notifies each session starting within 90 minutes exactly once, stamping `events.reminder_sent_at` so a later run skips it. Moving a session's start time clears the stamp so the reminder fires again for the new time. The post-session job runs an hour after a session ends, asks the host to confirm the roster and the players to rate it, then stamps `events.post_session_prompt_sent_at`. It ignores anything that finished more than three days ago, so an outage cannot produce a flood of stale prompts.
+
+Both jobs, the broadcast RPC and attendance confirmation are the only legitimate writers of the bookkeeping columns on `events` (`reminder_sent_at`, `last_broadcast_at`, `post_session_prompt_sent_at`, `attendance_confirmed_at`). Since the events UPDATE policy lets a host edit their own row, `private.guard_event_bookkeeping` silently restores those columns on any write that does not set the `pickleballcx.allow_event_bookkeeping` flag — otherwise a host could clear `reminder_sent_at` repeatedly and make the cron job push a fresh reminder to every attendee. `event_rsvps.attended` is protected the same way, so a player cannot mark themselves present for a game they skipped.
+
+Inspect runs with:
 
 ```sql
 select * from cron.job_run_details
@@ -163,6 +175,12 @@ order by start_time desc limit 10;
 ```
 
 Hosts reach their roster through `public.broadcast_to_attendees(event_id, message)`, which is host-only, limited to 500 characters, throttled to one message per minute per session, and closed once the session is cancelled or over.
+
+### After a session
+
+`public.confirm_attendance(event_id, attended_user_ids)` is host-only and marks everyone else on the roster a no-show, which is what makes the count mean anything. `public.submit_session_feedback(event_id, rating, court_note)` records a 1-to-5 rating with an optional court note in `session_feedback`, and re-submitting replaces the previous answer.
+
+Who may rate: a confirmed no-show may not. Before the host confirms anything, whoever said they were going may rate, so an inattentive host does not silence the whole session. Ratings are private to their author — there is no select policy for hosts, deliberately, since a host reading individual ratings of their own game is how honest feedback stops arriving.
 
 ---
 

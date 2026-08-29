@@ -23,6 +23,7 @@ export const USER_NOTIFICATION_TYPES = [
   'event_updated',
   'event_cancelled',
   'reminder',
+  'post_session',
 ] as const;
 export type UserNotificationType = (typeof USER_NOTIFICATION_TYPES)[number];
 

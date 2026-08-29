@@ -15,9 +15,9 @@ import { PrimaryButton } from '@/components/ui/Screen';
 import { SessionCard } from '@/components/ui/SessionCard';
 import { brand } from '@/constants/brand';
 import { radius, spacing } from '@/constants/theme';
-import { useMyPastEvents, useMyUpcomingEvents } from '@/hooks/useEvents';
+import { useMyPastEvents, useMyUpcomingEvents, type EventRow } from '@/hooks/useEvents';
 import { useSessionCardColumns } from '@/hooks/useSessionCardColumns';
-import { mapTabRoute, sessionRoute } from '@/lib/routes';
+import { mapTabRoute, newSessionRoute, sessionRoute } from '@/lib/routes';
 
 type GamesTab = 'upcoming' | 'past';
 
@@ -25,6 +25,27 @@ const TABS: { id: GamesTab; label: string }[] = [
   { id: 'upcoming', label: 'Upcoming' },
   { id: 'past', label: 'Past' },
 ];
+
+/**
+ * Rebooking keeps the shape of the old game and moves it to the same weekday and time
+ * in the next week that has not happened yet, which is the usual reason someone taps it.
+ */
+function rebookRoute(event: EventRow) {
+  const startsAt = new Date(event.starts_at);
+
+  while (startsAt.getTime() <= Date.now()) {
+    startsAt.setDate(startsAt.getDate() + 7);
+  }
+
+  return newSessionRoute(event.court_id, {
+    startsAt,
+    durationMinutes: event.duration_minutes,
+    sessionType: event.session_type,
+    maxPlayers: event.max_players,
+    skillMin: event.skill_min,
+    skillMax: event.skill_max,
+  });
+}
 
 export default function MyGamesScreen() {
   const [tab, setTab] = useState<GamesTab>('upcoming');
@@ -103,6 +124,15 @@ export default function MyGamesScreen() {
             {games.map((item) => (
               <View key={item.id} style={{ width: cardWidth }}>
                 <SessionCard event={item} onPress={() => router.push(sessionRoute(item.id))} />
+                {tab === 'past' ? (
+                  <Pressable
+                    accessibilityRole="button"
+                    accessibilityLabel={`Play ${item.courts?.name ?? 'this session'} again`}
+                    onPress={() => router.push(rebookRoute(item))}
+                    style={({ pressed }) => [styles.rebookButton, pressed && styles.rebookPressed]}>
+                    <Text style={styles.rebookLabel}>Play this again</Text>
+                  </Pressable>
+                ) : null}
               </View>
             ))}
           </View>
@@ -178,6 +208,24 @@ const styles = StyleSheet.create({
   grid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
+  },
+  rebookButton: {
+    alignItems: 'center',
+    paddingVertical: spacing.sm,
+    marginTop: spacing.xs,
+    marginBottom: spacing.sm,
+    borderRadius: radius.pill,
+    borderWidth: 1,
+    borderColor: brand.border,
+    backgroundColor: brand.surface,
+  },
+  rebookPressed: {
+    opacity: 0.7,
+  },
+  rebookLabel: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: brand.accent,
   },
   footerLink: {
     alignItems: 'center',

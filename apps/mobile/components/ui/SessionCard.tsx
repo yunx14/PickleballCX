@@ -7,7 +7,7 @@ import { brand } from '@/constants/brand';
 import { spacing, typography } from '@/constants/theme';
 import type { EventRow } from '@/hooks/useEvents';
 import { useIsCompactViewport } from '@/hooks/useIsCompactViewport';
-import { formatSessionTimeRange, isSessionInProgress } from '@/lib/format';
+import { formatSessionTimeRange, hasSessionEnded, isSessionInProgress } from '@/lib/format';
 
 export function SessionCard({
   event,
@@ -30,20 +30,25 @@ export function SessionCard({
   const isFull = event.max_players != null && goingCount != null && goingCount >= event.max_players;
   const isCancelled = Boolean(event.cancelled_at);
   const inProgress = !isCancelled && isSessionInProgress(event.starts_at, event.ends_at);
+  // A finished game is history, so it reads back rather than competing with the
+  // sessions you can still act on.
+  const hasEnded = !isCancelled && hasSessionEnded(event.ends_at);
 
   return (
     <View style={styles.wrapper}>
-      <Card onPress={onPress} style={styles.card}>
+      <Card onPress={onPress} style={[styles.card, hasEnded && styles.cardPast]}>
         {isCompact ? null : <CourtMapPreview lat={event.lat} lng={event.lng} />}
         <View style={styles.body}>
           <View style={styles.metaRow}>
-            <Text style={styles.datetime}>
+            <Text style={[styles.datetime, hasEnded && styles.datetimePast]}>
               {formatSessionTimeRange(event.starts_at, event.ends_at)}
             </Text>
             {isCancelled ? (
               <Text style={styles.cancelledPill}>Cancelled</Text>
             ) : inProgress ? (
               <Text style={styles.livePill}>Now playing</Text>
+            ) : hasEnded ? (
+              <Text style={styles.playedPill}>Played</Text>
             ) : null}
           </View>
           <Text style={styles.title} numberOfLines={1}>
@@ -78,6 +83,9 @@ const styles = StyleSheet.create({
   card: {
     width: '100%',
   },
+  cardPast: {
+    opacity: 0.72,
+  },
   body: {
     flexDirection: 'column',
     gap: spacing.xs,
@@ -93,6 +101,19 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: brand.accent,
     flexShrink: 1,
+  },
+  datetimePast: {
+    color: brand.muted,
+  },
+  playedPill: {
+    fontSize: 11,
+    fontWeight: '800',
+    color: brand.muted,
+    backgroundColor: brand.surfaceElevated,
+    borderRadius: 999,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: 2,
+    overflow: 'hidden',
   },
   cancelledPill: {
     fontSize: 11,

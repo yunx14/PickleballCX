@@ -1,3 +1,11 @@
+/**
+ * Adds the year only when the date is not in the current one, so a game from last
+ * November reads as last November instead of looking like this weekend.
+ */
+function yearIfDistant(date: Date): { year?: 'numeric' } {
+  return date.getFullYear() === new Date().getFullYear() ? {} : { year: 'numeric' };
+}
+
 export function formatSessionDateTime(iso: string): string {
   const date = new Date(iso);
   return date.toLocaleString(undefined, {
@@ -6,6 +14,7 @@ export function formatSessionDateTime(iso: string): string {
     day: 'numeric',
     hour: 'numeric',
     minute: '2-digit',
+    ...yearIfDistant(date),
   });
 }
 
@@ -15,6 +24,7 @@ export function formatSessionDate(iso: string): string {
     weekday: 'short',
     month: 'short',
     day: 'numeric',
+    ...yearIfDistant(date),
   });
 }
 
@@ -43,6 +53,10 @@ export function formatSessionTimeRange(startIso: string, endIso: string): string
 
 export function isSessionInProgress(startIso: string, endIso: string, now = Date.now()): boolean {
   return new Date(startIso).getTime() <= now && now < new Date(endIso).getTime();
+}
+
+export function hasSessionEnded(endIso: string, now = Date.now()): boolean {
+  return new Date(endIso).getTime() <= now;
 }
 
 export function formatRelativeTime(iso: string): string {

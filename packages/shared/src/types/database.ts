@@ -122,6 +122,8 @@ export interface Database {
           cancellation_reason: string | null;
           reminder_sent_at: string | null;
           last_broadcast_at: string | null;
+          attendance_confirmed_at: string | null;
+          post_session_prompt_sent_at: string | null;
         };
         Insert: {
           id?: string;
@@ -160,9 +162,12 @@ export interface Database {
           // Only cancel_event and reinstate_event may change these.
           cancelled_at?: never;
           cancellation_reason?: never;
-          // Bookkeeping for the reminder job and the broadcast throttle.
+          // Bookkeeping for the cron jobs, the broadcast throttle and attendance.
+          // A trigger restores these on any write that is not from their own RPC.
           reminder_sent_at?: never;
           last_broadcast_at?: never;
+          attendance_confirmed_at?: never;
+          post_session_prompt_sent_at?: never;
         };
         Relationships: [
           {
@@ -188,6 +193,7 @@ export interface Database {
           status: RsvpStatus;
           created_at: string;
           updated_at: string;
+          attended: boolean | null;
         };
         Insert: {
           event_id: string;
@@ -195,6 +201,8 @@ export interface Database {
           status?: RsvpStatus;
           created_at?: string;
           updated_at?: string;
+          // Only confirm_attendance may write this.
+          attended?: never;
         };
         Update: {
           event_id?: string;
@@ -202,6 +210,7 @@ export interface Database {
           status?: RsvpStatus;
           created_at?: string;
           updated_at?: string;
+          attended?: never;
         };
         Relationships: [
           {
@@ -255,6 +264,35 @@ export interface Database {
           },
           {
             foreignKeyName: 'event_comments_user_id_fkey',
+            columns: ['user_id'],
+            isOneToOne: false,
+            referencedRelation: 'profiles',
+            referencedColumns: ['id'],
+          },
+        ];
+      };
+      session_feedback: {
+        Row: {
+          event_id: string;
+          user_id: string;
+          rating: number;
+          court_note: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        // Written only through submit_session_feedback; there are no write policies.
+        Insert: never;
+        Update: never;
+        Relationships: [
+          {
+            foreignKeyName: 'session_feedback_event_id_fkey',
+            columns: ['event_id'],
+            isOneToOne: false,
+            referencedRelation: 'events',
+            referencedColumns: ['id'],
+          },
+          {
+            foreignKeyName: 'session_feedback_user_id_fkey',
             columns: ['user_id'],
             isOneToOne: false,
             referencedRelation: 'profiles',
@@ -356,7 +394,16 @@ export interface Database {
           display_name: string;
           avatar_url: string | null;
           skill_level: SkillLevel | null;
+          attended: boolean | null;
         }[];
+      };
+      confirm_attendance: {
+        Args: { p_event_id: string; p_attended_user_ids: string[] };
+        Returns: number;
+      };
+      submit_session_feedback: {
+        Args: { p_event_id: string; p_rating: number; p_court_note?: string | null };
+        Returns: void;
       };
       cancel_event: {
         Args: { p_event_id: string; p_reason?: string | null };

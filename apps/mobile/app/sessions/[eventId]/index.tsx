@@ -22,6 +22,7 @@ import {
 import { Avatar } from '@/components/ui/Avatar';
 import { SkillBadge } from '@/components/ui/SkillBadge';
 import { PrimaryButton } from '@/components/ui/Screen';
+import { PostSessionSection } from '@/components/sessions/PostSessionSection';
 import { SessionComments } from '@/components/sessions/SessionComments';
 import { brand } from '@/constants/brand';
 import {
@@ -85,10 +86,17 @@ export default function SessionDetailScreen() {
   }
 
   if (error || !event) {
+    // A missing row is usually not a deleted session. Once a session is over, only the
+    // host and the players who RSVP'd can still see it, so the old "may have been
+    // removed" copy sent people looking for a problem that did not exist.
     return (
       <View style={styles.container}>
-        <Text style={styles.errorTitle}>Session not found</Text>
-        <Text style={styles.errorBody}>{error?.message ?? 'This session may have been removed.'}</Text>
+        <Text style={styles.errorTitle}>This session isn’t available</Text>
+        <Text style={styles.errorBody}>
+          {error?.message ??
+            'Finished sessions are only visible to the host and the players who joined. It may also have been deleted.'}
+        </Text>
+        <PrimaryButton label="Back to games" onPress={() => router.replace(sessionsTabRoute)} />
       </View>
     );
   }
@@ -398,11 +406,23 @@ export default function SessionDetailScreen() {
         </View>
       ) : null}
 
+      {hasEnded && !isCancelled ? (
+        <PostSessionSection
+          eventId={id}
+          roster={rsvps ?? []}
+          isHost={isCreator}
+          attendanceConfirmed={Boolean(event.attendance_confirmed_at)}
+          viewerRsvp={userRsvp}
+        />
+      ) : null}
+
       <Text style={styles.sectionTitle}>Your RSVP</Text>
       {isCancelled ? (
         <Text style={styles.rsvpClosed}>
           RSVPs are closed because this session was cancelled.
         </Text>
+      ) : hasEnded ? (
+        <Text style={styles.rsvpClosed}>This session is over, so RSVPs are closed.</Text>
       ) : (
       <View style={styles.rsvpRow}>
         {RSVP_STATUSES.filter((status) => status !== 'waitlist').map((status) => {

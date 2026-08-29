@@ -102,6 +102,9 @@ async function buildNotifications(
     if (payload.type === 'BROADCAST') {
       return buildBroadcastNotifications(supabase, payload, record);
     }
+    if (payload.type === 'POST_SESSION') {
+      return buildPostSessionNotifications(supabase, payload, record);
+    }
     return [];
   }
 
@@ -321,6 +324,43 @@ async function buildBroadcastNotifications(
     body: preview,
     data: { eventId, screen: 'session' },
   }));
+}
+
+async function buildPostSessionNotifications(
+  supabase: ReturnType<typeof createClient>,
+  payload: WebhookPayload,
+  record: Record<string, unknown>,
+): Promise<PushMessage[]> {
+  const eventId = String(record.id ?? '');
+  const recipientIds = parseRecipientIds(payload);
+  if (!eventId || recipientIds.length === 0) return [];
+
+  const courtName = await courtNameForEvent(supabase, eventId, String(record.court_id ?? ''));
+  const hostId = String(record.created_by ?? '');
+
+  // The host is asked to confirm the roster; everyone else is asked to rate.
+  const hostTokens = hostId ? await fetchTokensForUsers(supabase, [hostId]) : [];
+  const playerTokens = (
+    await fetchTokensForUsers(
+      supabase,
+      recipientIds.filter((id) => id !== hostId),
+    )
+  ).filter((token) => !hostTokens.includes(token));
+
+  return [
+    ...hostTokens.map((token) => ({
+      to: token,
+      title: 'How did it go?',
+      body: `Confirm who played at ${courtName} and rate the session`,
+      data: { eventId, screen: 'session' },
+    })),
+    ...playerTokens.map((token) => ({
+      to: token,
+      title: 'How did it go?',
+      body: `Rate your session at ${courtName}`,
+      data: { eventId, screen: 'session' },
+    })),
+  ];
 }
 
 Deno.serve(async (req) => {

@@ -1,7 +1,28 @@
 import type { Href } from 'expo-router';
 
-export function newSessionRoute(courtId: string): Href {
-  return `/sessions/new?courtId=${courtId}` as Href;
+/** Values a rebook can carry over from a session that already happened. */
+export interface NewSessionPrefill {
+  startsAt?: Date;
+  durationMinutes?: number;
+  sessionType?: string;
+  maxPlayers?: number | null;
+  skillMin?: string | null;
+  skillMax?: string | null;
+}
+
+export function newSessionRoute(courtId: string, prefill?: NewSessionPrefill): Href {
+  const params = new URLSearchParams({ courtId });
+
+  if (prefill?.startsAt) params.set('startsAt', prefill.startsAt.toISOString());
+  if (prefill?.durationMinutes != null) {
+    params.set('durationMinutes', String(prefill.durationMinutes));
+  }
+  if (prefill?.sessionType) params.set('sessionType', prefill.sessionType);
+  if (prefill?.maxPlayers != null) params.set('maxPlayers', String(prefill.maxPlayers));
+  if (prefill?.skillMin) params.set('skillMin', prefill.skillMin);
+  if (prefill?.skillMax) params.set('skillMax', prefill.skillMax);
+
+  return `/sessions/new?${params.toString()}` as Href;
 }
 
 export function sessionRoute(eventId: string): Href {

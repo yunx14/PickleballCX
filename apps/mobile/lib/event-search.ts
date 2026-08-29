@@ -104,6 +104,9 @@ export function toEventSearchRow(row: SearchEventsRpcRow): EventSearchRow {
     // Discovery never returns cancelled sessions, so these are always clear here.
     cancelled_at: null,
     cancellation_reason: null,
+    // Search only returns sessions that have not finished, so attendance is never
+    // confirmed for anything in this list.
+    attendance_confirmed_at: null,
     courts: row.court_name
       ? {
           name: row.court_name,
